@@ -75,6 +75,7 @@ if instance.config_value['debugging']:
 gen = instance.GENERADORES
 scen = instance.SCENARIOS_FALLA_GX
 lin = instance.LINEAS
+bar = instance.BARRAS
 
 # Resultados para GENERADORES---------------------------------------------------------
 ofile = open(path_resultados + 'resultados_generadores.csv', "wb")
@@ -120,6 +121,28 @@ for l in lin:
 
     for s in scen:
         tmprow.append(instance.LIN_FLUJO_S[l, s].value)
+    writer.writerow(tmprow)
+    tmprow = []
+
+ofile.close()
+
+# Resultados para BARRAS (ENS)---------------------------------------------------------
+ofile = open(path_resultados + 'resultados_barras.csv', "wb")
+writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
+
+tmprow = []
+# header
+header = ['Linea', 'ENS_0']
+for s in scen:
+    header.append('ENS_' + str(s))
+writer.writerow(header)
+
+for b in bar:
+    tmprow.append(b)
+    tmprow.append(instance.ENS[b].value)
+
+    for s in scen:
+        tmprow.append(instance.ENS_S[b, s].value)
     writer.writerow(tmprow)
     tmprow = []
 
