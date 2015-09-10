@@ -1,0 +1,4 @@
+[datos]
+/Users/MPro/Documents/TRABAJO/CE-FCFM/AreasDeControl/areas_de_control/datos/
+[resultados]
+/Users/MPro/Documents/TRABAJO/CE-FCFM/AreasDeControl/areas_de_control/resultados/
