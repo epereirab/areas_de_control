@@ -33,7 +33,8 @@ data.load(filename=path_datos+'data_gen.tab',
           index=model.GENERADORES)
 
 data.load(filename=path_datos+'data_lin.tab',
-          param=(model.linea_fmax, model.linea_barA, model.linea_barB, model.linea_available, model.linea_x), index=model.LINEAS)
+          param=(model.linea_fmax, model.linea_barA, model.linea_barB, model.linea_available, model.linea_x),
+          index=model.LINEAS)
 
 data.load(filename=path_datos+'data_bar.tab',
           param=model.demanda,
@@ -56,7 +57,7 @@ instance.load(results)
 ####  - - - - - - IMPRIMIENDO SI ES NECESARIO  - - - - - - #######
 
 if instance.config_value['debugging']:
-    stdout_ = sys.stdout  #Keep track of the previous value.
+    stdout_ = sys.stdout  # Keep track of the previous value.
     stream = cStringIO.StringIO()
     sys.stdout = stream
     print instance.pprint()  # Here you can do whatever you want, import module1, call test
@@ -65,24 +66,27 @@ if instance.config_value['debugging']:
 
     output = open(path_resultados+'modelo.txt', 'w')
     output.write(variable)
-    instance.write(filename=path_resultados+'LP.txt',io_options={'symbolic_solver_labels':True})
-    #sys.stdout.write(instance.pprint())
+    instance.write(filename=path_resultados+'LP.txt', io_options={'symbolic_solver_labels':True})
+    # sys.stdout.write(instance.pprint())
     output.close()
 
 
 # ------R E S U L T A D O S------------------------------------------------------------------------------
-# resultados para GENERADORES---------------------------------------------------------
-ofile  = open(path_resultados+'resultados_generadores.csv', "wb")
-writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 gen = instance.GENERADORES
 scen = instance.SCENARIOS_FALLA_GX
+lin = instance.LINEAS
+
+# Resultados para GENERADORES---------------------------------------------------------
+ofile = open(path_resultados + 'resultados_generadores.csv', "wb")
+writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 
 varpg = getattr(instance, str('GEN_PG'))
 varuc = getattr(instance, str('GEN_UC'))
 varpg_s = getattr(instance, str('GEN_PG_S'))
+
 tmprow = []
-#header
-header = ['Generador','UC','PG_0']
+# header
+header = ['Generador', 'UC', 'PG_0']
 for s in scen:
     header.append(str(s))
 writer.writerow(header)
@@ -93,8 +97,30 @@ for g in gen:
     tmprow.append(str(varpg[g].value))
 
     for s in scen:
-        tmprow.append(str(varpg_s[g,s].value))
+        tmprow.append(str(varpg_s[g, s].value))
+    writer.writerow(tmprow)
+    tmprow = []
+ofile.close()
+
+# Resultados para LINEAS---------------------------------------------------------
+ofile = open(path_resultados + 'resultados_lineas.csv', "wb")
+writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
+
+tmprow = []
+# header
+header = ['Linea', 'Flujo_MAX', 'Flujo_0']
+for s in scen:
+    header.append(str(s))
+writer.writerow(header)
+
+for l in lin:
+    tmprow.append(l)
+    tmprow.append(instance.linea_fmax[l])
+    tmprow.append(instance.LIN_FLUJO[l].value)
+
+    for s in scen:
+        tmprow.append(instance.LIN_FLUJO_S[l, s].value)
     writer.writerow(tmprow)
     tmprow = []
 
-# resultados para LINEAS---------------------------------------------------------
+ofile.close()

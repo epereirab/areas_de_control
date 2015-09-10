@@ -198,7 +198,7 @@ def l_max_kcof_scen_rule(model, l, sg):
     lside = 100 * (model.THETA_S[model.linea_barB[l], sg] - model.THETA_S[model.linea_barA[l], sg]) / model.linea_x[l]
     return rside == lside
 
-model.CT_lineas_2ley_kcof_scenarios = Constraint(model.LINEAS, model.SCENARIOS_FALLA_GX,rule=l_max_kcof_scen_rule)
+model.CT_lineas_2ley_kcof_scenarios = Constraint(model.LINEAS, model.SCENARIOS_FALLA_GX, rule=l_max_kcof_scen_rule)
 
 
 ###########################################################################
@@ -211,7 +211,7 @@ def costo_operacion_rule(model):
 
     costo_por_scenario = (sum(model.GEN_PG_S[g, sg] * model.gen_cvar[g]
                               for g in model.GENERADORES for sg in model.SCENARIOS_FALLA_GX) +
-                          sum(model.ENS_S[b,sg]* model.config_value['voll']
+                          sum(model.ENS_S[b, sg] * model.config_value['voll']
                               for b in model.BARRAS for sg in model.SCENARIOS_FALLA_GX))
 
     return costo_base + costo_por_scenario
