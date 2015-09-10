@@ -1,0 +1,7 @@
+LINEAS linea_fmax linea_barA linea_barB linea_available linea_x
+L1 1100 norte        centro     True  0.01
+L2 1200 centro_costa centro     True  0.01
+L3 1200 centro       sur        True  0.01
+L4 1200 centro_costa sur_costa  True  0.01
+L5 1200 sur_costa    sur        True 0.01
+L6 1200 sur_costa    centro     True 0.01

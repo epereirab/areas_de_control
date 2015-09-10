@@ -1,0 +1,5 @@
+GENERADORES gen_barra gen_pmax gen_pmin gen_cvar gen_falla
+g1 norte 50 0 300 False
+g2 centro_costa 300 5 50 True
+g3 centro_costa 250 8 60 True
+g4 sur_costa 300 30 80 True
