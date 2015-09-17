@@ -30,7 +30,7 @@ data = DataPortal()
 
 data.load(filename=path_datos+'data_gen.tab',
           param=(model.gen_barra, model.gen_pmax, model.gen_pmin, model.gen_cvar, model.gen_falla,
-                 model.gen_rupmax, model.gen_rdnmax),
+                 model.gen_rupmax, model.gen_rdnmax, model.gen_cfijo),
           index=model.GENERADORES)
 
 data.load(filename=path_datos+'data_lin.tab',
@@ -68,7 +68,7 @@ if instance.config_value['debugging']:
 
     output = open(path_resultados+'modelo.txt', 'w')
     output.write(variable)
-    instance.write(filename=path_resultados+'LP.txt', io_options={'symbolic_solver_labels':True})
+    instance.write(filename=path_resultados+'LP.txt', io_options={'symbolic_solver_labels': True})
     # sys.stdout.write(instance.pprint())
     output.close()
 
@@ -158,26 +158,23 @@ ofile.close()
 
 
 
-def costo_base():
-    return (sum(instance.GEN_PG[g].value * instance.gen_cvar[g] for g in instance.GENERADORES) +
-            sum(instance.ENS[b].value * instance.config_value['voll'] for b in instance.BARRAS))
-
-def costo_escenario(s):
-    return (sum(instance.GEN_PG_S[g, s].value * instance.gen_cvar[g] for g in instance.GENERADORES) +
-            sum(instance.ENS_S[b, s].value * instance.config_value['voll'] for b in instance.BARRAS))
-
 def costo_ENS():
     return sum(instance.ENS[b].value * instance.config_value['voll'] for b in instance.BARRAS)
 
-def costo_ENS_escenario(s):
-    return sum(instance.ENS_S[b, s].value * instance.config_value['voll'] for b in instance.BARRAS)
+def costo_ENS_escenario(sc):
+    return sum(instance.ENS_S[b, sc].value * instance.config_value['voll'] for b in instance.BARRAS)
 
 def costo_op():
     return sum(instance.GEN_PG[g].value * instance.gen_cvar[g] for g in instance.GENERADORES)
 
-def costo_op_escenario(s):
-    return sum(instance.GEN_PG_S[g, s].value * instance.gen_cvar[g] for g in instance.GENERADORES)
+def costo_op_escenario(sc):
+    return sum(instance.GEN_PG_S[g, sc].value * instance.gen_cvar[g] for g in instance.GENERADORES)
 
+def costo_base():
+    return costo_op() + costo_ENS()
+
+def costo_escenario(sc):
+    return costo_op_escenario(sc) + costo_ENS_escenario(sc)
 
 
 # Resultados del Sistema (ENS)---------------------------------------------------------

@@ -39,6 +39,7 @@ model.gen_cvar = Param(model.GENERADORES)
 model.gen_falla = Param(model.GENERADORES)
 model.gen_rupmax = Param(model.GENERADORES)
 model.gen_rdnmax = Param(model.GENERADORES)
+model.gen_cfijo = Param(model.GENERADORES)
 
 # LINEAS
 model.linea_fmax = Param(model.LINEAS)
@@ -100,10 +101,7 @@ model.GEN_PG = Var(model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen
 
 # Generacion del generador g, Escenarios de falla
 def bounds_gen_pg_scenario(model, g, s):
-    if g == s:
-        return 0, 0
-    else:
-        return 0, model.gen_pmax[g]
+    return 0, model.gen_pmax[g]
 model.GEN_PG_S = Var(model.GENERADORES, model.CONTINGENCIAS,
                      within=NonNegativeReals, bounds=bounds_gen_pg_scenario)
 
@@ -140,10 +138,7 @@ model.LIN_FLUJO = Var(model.LINEAS, bounds=bounds_fmax)
 
 # FLUJO MAXIMO LINEAS SCENARIO
 def bounds_fmax_scenario(model, l, s):
-    if l == s:
-        return 0, 0
-    else:
-        return -model.linea_fmax[l], model.linea_fmax[l]
+    return -model.linea_fmax[l], model.linea_fmax[l]
 model.LIN_FLUJO_S = Var(model.LINEAS, model.CONTINGENCIAS, bounds=bounds_fmax_scenario)
 
 
@@ -169,6 +164,7 @@ model.CT_reference_bar = Constraint(rule=reference_bar_rule)
 def reference_bar_rule_contingency(model, s):
     return sum(model.THETA_S[b, s] for b in model.BARRAS if b == model.config_value['default_bar']) == 0.0
 model.CT_reference_bar_contingency = Constraint(model.CONTINGENCIAS, rule=reference_bar_rule_contingency)
+
 
 # CONSTRAINT 1: Balance nodal por barra - pre-fault
 def nodal_balance_rule(model, b):
@@ -214,7 +210,7 @@ model.CT_max_power = Constraint(model.GENERADORES, rule=p_max_generators_rule)
 # CONSTRAINT 2 y 3: Pmin & Pmax - Post-fault
 def p_min_generators_contingency_rule(model, g, s):
     if g == s:
-        return Constraint.Skip
+        return model.GEN_PG_S[g, s] == 0
     return model.GEN_PG_S[g, s] >= model.GEN_PG[g] - model.GEN_RESDN[g]
 
 
@@ -241,7 +237,7 @@ model.CT_kirchhoff_2nd_law = Constraint(model.LINEAS, rule=kirchhoff_rule)
 # CONSTRAINT 4: DC Flow - post-fault
 def kirchhoff_contingency_rule(model, l, s):
     if l == s:
-        return Constraint.Skip
+        return model.LIN_FLUJO_S[l, s] == 0
     rside = model.LIN_FLUJO_S[l, s]
     lside = 100 * (model.THETA_S[model.linea_barB[l], s] - model.THETA_S[model.linea_barA[l], s]) / model.linea_x[l]
     return rside == lside
@@ -262,10 +258,12 @@ model.CT_kirchhoff_2nd_law_contingency = Constraint(model.LINEAS, model.CONTINGE
 ###########################################################################
 
 def system_cost_rule(model):
-    costo_base = (sum(model.GEN_PG[g] * model.gen_cvar[g] for g in model.GENERADORES) +
+    costo_base = (sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
+                  sum(model.GEN_PG[g] * model.gen_cvar[g] for g in model.GENERADORES) +
                   sum(model.ENS[b] * model.config_value['voll'] for b in model.BARRAS))
 
-    costo_por_scenario = (sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
+    costo_por_scenario = (sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
+                          sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
                               for g in model.GENERADORES for s in model.CONTINGENCIAS) +
                           sum(model.ENS_S[b, s] * model.config_value['voll']
                               for b in model.BARRAS for s in model.CONTINGENCIAS))
