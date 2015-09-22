@@ -105,7 +105,6 @@ def bounds_gen_pg_scenario(model, g, s):
 model.GEN_PG_S = Var(model.GENERADORES, model.CONTINGENCIAS,
                      within=NonNegativeReals, bounds=bounds_gen_pg_scenario)
 
-
 # Reserva UP del generador g, escenario base
 def bounds_gen_resup(model, g):
     return 0, model.gen_rupmax[g]
@@ -264,7 +263,10 @@ def system_cost_rule(model):
                           sum(model.ENS_S[b, s] * model.config_value['voll']
                               for b in model.BARRAS for s in model.CONTINGENCIAS))
 
-    return costo_base + costo_por_scenario
+    penalizacion_reservas = sum(0.01 * model.GEN_RESDN[g] for g in model.GENERADORES) + \
+                            sum(0.01 * model.GEN_RESUP[g] for g in model.GENERADORES)
+
+    return costo_base + costo_por_scenario + penalizacion_reservas
 
 
 model.Objective_rule = Objective(rule=system_cost_rule, sense=minimize)
