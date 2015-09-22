@@ -41,6 +41,7 @@ data.load(filename=path_datos+'data_lin.tab',
 data.load(filename=path_datos+'data_bar.tab',
           param=model.demanda,
           index=model.BARRAS)
+
 data.load(filename=path_datos+'data_config.tab',
           param=model.config_value,
           index=model.CONFIG)
@@ -89,22 +90,21 @@ writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 
 tmprow = []
 # header
-header = ['Generador', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
+header = ['Generador', 'Pmax', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
 for s in scen:
     header.append(str(s))
 writer.writerow(header)
 
 for g in gen:
     tmprow.append(g)
-    #tmprow.append(str(varuc[g].value))
-    #tmprow.append(str(varpg[g].value))
+    tmprow.append(instance.gen_pmax[g])
+    tmprow.append(instance.gen_pmin[g])
     tmprow.append(instance.GEN_UC[g].value)
     tmprow.append(instance.GEN_PG[g].value)
     tmprow.append(instance.GEN_RESUP[g].value)
     tmprow.append(instance.GEN_RESDN[g].value)
     for s in scen:
         tmprow.append(instance.GEN_PG_S[g, s].value)
-        # tmprow.append(str(varpg_s[g, s].value))
 
     writer.writerow(tmprow)
     tmprow = []
