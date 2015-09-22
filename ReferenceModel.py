@@ -52,7 +52,7 @@ model.linea_x = Param(model.LINEAS)
 # BARRAS
 model.demanda = Param(model.BARRAS)
 
-# PARAMETROS DE CONFIGURACION
+# PARAMETROS DE CONFIGURACION; valores: 1) all (gx y tx), 2) gx (solo gx), 3) tx (solo tx), 4) none
 model.config_value = Param(model.CONFIG)
 
 
@@ -61,7 +61,7 @@ model.config_value = Param(model.CONFIG)
 ###########################################################################
 
 def falla_scenarios_gx_init(model):
-    if model.config_value['scuc']:
+    if model.config_value['scuc']=='gx' or model.config_value['scuc']=='all':
         return (g for g in model.GENERADORES if model.gen_falla[g])
     else:
         return []
@@ -69,7 +69,7 @@ model.SCENARIOS_FALLA_GX = Set(initialize=falla_scenarios_gx_init)
 
 
 def falla_scenarios_tx_init(model):
-    if model.config_value['scuc']:
+    if model.config_value['scuc']=='tx' or model.config_value['scuc']=='all':
         return (l for l in model.LINEAS if model.linea_falla[l])
     else:
         return []
@@ -143,28 +143,24 @@ model.LIN_FLUJO_S = Var(model.LINEAS, model.CONTINGENCIAS, bounds=bounds_fmax_sc
 
 
 # ANGULO POR BARRAS
-model.THETA = Var(model.BARRAS, bounds=(-math.pi, math.pi))
+def bounds_theta(model, b):
+    if b == model.config_value['default_bar']:
+        return (0.0,0.0)
+    return (-math.pi, math.pi)
+
+model.THETA = Var(model.BARRAS, bounds=bounds_theta)
 
 # ANGULO POR BARRAS SCENARIO
-model.THETA_S = Var(model.BARRAS, model.CONTINGENCIAS, bounds=(-math.pi, math.pi))
+def bounds_theta_scenario(model, b, s):
+    if b == model.config_value['default_bar']:
+        return (0.0,0.0)
+    return (-math.pi, math.pi)
+
+model.THETA_S = Var(model.BARRAS, model.CONTINGENCIAS, bounds=bounds_theta_scenario)
 
 ###########################################################################
 # CONSTRAINTS
 ###########################################################################
-
-
-# CONSTRAINT 0: Barra de referencia
-def reference_bar_rule(model):
-    for b in model.BARRAS:
-        if b == model.config_value['default_bar']:
-            return model.THETA[b] == 0
-model.CT_reference_bar = Constraint(rule=reference_bar_rule)
-
-
-def reference_bar_rule_contingency(model, s):
-    return sum(model.THETA_S[b, s] for b in model.BARRAS if b == model.config_value['default_bar']) == 0.0
-model.CT_reference_bar_contingency = Constraint(model.CONTINGENCIAS, rule=reference_bar_rule_contingency)
-
 
 # CONSTRAINT 1: Balance nodal por barra - pre-fault
 def nodal_balance_rule(model, b):
