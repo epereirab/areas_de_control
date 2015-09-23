@@ -259,10 +259,11 @@ def system_cost_rule(model):
                   sum(model.ENS[b] * model.config_value['voll'] for b in model.BARRAS))
 
     costo_por_scenario = sum(model.ENS_S[b, s] * model.config_value['voll']
-                              for b in model.BARRAS for s in model.CONTINGENCIAS)
+                              for b in model.BARRAS for s in model.CONTINGENCIAS)\
+                         #+ sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
+                         #     for g in model.GENERADORES for s in model.CONTINGENCIAS)
+
     #(sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
-                         # sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
-                         #     for g in model.GENERADORES for s in model.CONTINGENCIAS) +
 
 
     penalizacion_reservas = sum(0.01 * model.GEN_RESDN[g] for g in model.GENERADORES) + \
