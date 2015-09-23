@@ -28,32 +28,29 @@ for line in config_rutas:
 ####  - - - - - - CARGAR DATOS AL MODELO  - - - - - - #######
 data = DataPortal()
 
-data.load(filename=path_datos+'data_gen.tab',
+data.load(filename=path_datos+'data_gen.csv',
           param=(model.gen_barra, model.gen_pmax, model.gen_pmin, model.gen_cvar, model.gen_falla,
                  model.gen_rupmax, model.gen_rdnmax, model.gen_cfijo),
           index=model.GENERADORES)
 
-data.load(filename=path_datos+'data_lin.tab',
+data.load(filename=path_datos+'data_lin.csv',
           param=(model.linea_fmax, model.linea_barA, model.linea_barB, model.linea_available, model.linea_x,
                  model.linea_falla),
           index=model.LINEAS)
 
-data.load(filename=path_datos+'data_bar.tab',
+data.load(filename=path_datos+'data_bar.csv',
           param=model.demanda,
           index=model.BARRAS)
 
-data.load(filename=path_datos+'data_config.tab',
+data.load(filename=path_datos+'data_config.csv',
           param=model.config_value,
           index=model.CONFIG)
 
-# model.pprint()
-
 instance = model.create(data)
-
 opt = SolverFactory("cplex")
 
 ####  - - - - - - RESOLVIENDO LA OPTIMIZACION  - - - - - - #######
-results = opt.solve(instance)
+results = opt.solve(instance, tee=True)
 #results.write()
 instance.load(results)
 
@@ -90,13 +87,15 @@ writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 
 tmprow = []
 # header
-header = ['Generador', 'Pmax', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
+header = ['Generador', 'barra', 'Cvar', 'Pmax', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
 for s in scen:
     header.append(str(s))
 writer.writerow(header)
 
 for g in gen:
     tmprow.append(g)
+    tmprow.append(instance.gen_barra[g])
+    tmprow.append(instance.gen_cvar[g])
     tmprow.append(instance.gen_pmax[g])
     tmprow.append(instance.gen_pmin[g])
     tmprow.append(instance.GEN_UC[g].value)

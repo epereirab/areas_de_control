@@ -163,6 +163,7 @@ model.THETA_S = Var(model.BARRAS, model.CONTINGENCIAS, bounds=bounds_theta_scena
 
 # CONSTRAINT 1: Balance nodal por barra - pre-fault
 def nodal_balance_rule(model, b):
+
     lside = (sum(model.GEN_PG[g] for g in model.GENERADORES if model.gen_barra[g] == b) +
              sum(model.LIN_FLUJO[l] for l in model.LINEAS if model.linea_barB[l] == b and model.linea_available[l]))
     rside = (model.demanda[b] - model.ENS[b] +
@@ -257,11 +258,12 @@ def system_cost_rule(model):
                   sum(model.GEN_PG[g] * model.gen_cvar[g] for g in model.GENERADORES) +
                   sum(model.ENS[b] * model.config_value['voll'] for b in model.BARRAS))
 
-    costo_por_scenario = (sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
-                          sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
-                              for g in model.GENERADORES for s in model.CONTINGENCIAS) +
-                          sum(model.ENS_S[b, s] * model.config_value['voll']
-                              for b in model.BARRAS for s in model.CONTINGENCIAS))
+    costo_por_scenario = sum(model.ENS_S[b, s] * model.config_value['voll']
+                              for b in model.BARRAS for s in model.CONTINGENCIAS)
+    #(sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
+                         # sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
+                         #     for g in model.GENERADORES for s in model.CONTINGENCIAS) +
+
 
     penalizacion_reservas = sum(0.01 * model.GEN_RESDN[g] for g in model.GENERADORES) + \
                             sum(0.01 * model.GEN_RESUP[g] for g in model.GENERADORES)
