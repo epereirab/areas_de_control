@@ -81,16 +81,17 @@ bar = instance.BARRAS
 ofile = open(path_resultados + 'resultados_generadores.csv', "wb")
 writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 
-# varpg = getattr(instance, str('GEN_PG'))
-# varuc = getattr(instance, str('GEN_UC'))
-# varpg_s = getattr(instance, str('GEN_PG_S'))
+ofile2 = open(path_resultados + 'resultados_generadores_delta.csv', "wb")
+writer2 = csv.writer(ofile2, delimiter=',', quoting=csv.QUOTE_NONE)
 
 tmprow = []
+tmprow2 = []
 # header
 header = ['Generador', 'barra', 'Cvar', 'Pmax', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
 for s in scen:
     header.append(str(s))
 writer.writerow(header)
+writer2.writerow(header)
 
 for g in gen:
     tmprow.append(g)
@@ -102,12 +103,21 @@ for g in gen:
     tmprow.append(instance.GEN_PG[g].value)
     tmprow.append(instance.GEN_RESUP[g].value)
     tmprow.append(instance.GEN_RESDN[g].value)
+    tmprow2 = list(tmprow)
     for s in scen:
         tmprow.append(instance.GEN_PG_S[g, s].value)
+        if s == g:
+            tmprow2.append('0')
+
+        else:
+            tmprow2.append(instance.GEN_PG_S[g, s].value-instance.GEN_PG[g].value)
 
     writer.writerow(tmprow)
+    writer2.writerow(tmprow2)
     tmprow = []
+    tmprow2 = []
 ofile.close()
+ofile2.close()
 
 # Resultados para LINEAS---------------------------------------------------------
 ofile = open(path_resultados + 'resultados_lineas.csv', "wb")
