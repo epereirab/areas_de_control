@@ -39,8 +39,12 @@ data.load(filename=path_datos+'data_lin.csv',
           index=model.LINEAS)
 
 data.load(filename=path_datos+'data_bar.csv',
-          param=model.demanda,
+          param=(model.demanda, model.zona),
           index=model.BARRAS)
+
+data.load(filename=path_datos+'data_zone.csv',
+          param=(model.zonal_rup, model.zonal_rdn),
+          index=model.ZONAS)
 
 data.load(filename=path_datos+'data_config.csv',
           param=model.config_value,
@@ -51,7 +55,7 @@ opt = SolverFactory("cplex")
 
 ####  - - - - - - RESOLVIENDO LA OPTIMIZACION  - - - - - - #######
 results = opt.solve(instance, tee=True)
-#results.write()
+# results.write()
 instance.load(results)
 
 ####  - - - - - - IMPRIMIENDO SI ES NECESARIO  - - - - - - #######

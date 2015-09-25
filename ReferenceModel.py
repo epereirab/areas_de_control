@@ -25,6 +25,8 @@ model.LINEAS = Set()
 model.BARRAS = Set()
 # BARRAS
 model.CONFIG = Set()
+# ZONAS
+model.ZONAS = Set()
 
 
 ###########################################################################
@@ -51,8 +53,14 @@ model.linea_x = Param(model.LINEAS)
 
 # BARRAS
 model.demanda = Param(model.BARRAS)
+model.zona = Param(model.BARRAS)
 
-# PARAMETROS DE CONFIGURACION; valores: 1) all (gx y tx), 2) gx (solo gx), 3) tx (solo tx), 4) none
+# ZONAS
+model.zonal_rup = Param(model.ZONAS)
+model.zonal_rdn = Param(model.ZONAS)
+
+# PARAMETROS DE CONFIGURACION; 
+# Valores: 1) all (gx y tx), 2) gx (solo gx), 3) tx (solo tx), 4) zonal (reserva por zonas)
 model.config_value = Param(model.CONFIG)
 
 
@@ -61,7 +69,7 @@ model.config_value = Param(model.CONFIG)
 ###########################################################################
 
 def falla_scenarios_gx_init(model):
-    if model.config_value['scuc']=='gx' or model.config_value['scuc']=='all':
+    if model.config_value['scuc'] == 'gx' or model.config_value['scuc'] == 'all':
         return (g for g in model.GENERADORES if model.gen_falla[g])
     else:
         return []
@@ -69,7 +77,7 @@ model.SCENARIOS_FALLA_GX = Set(initialize=falla_scenarios_gx_init)
 
 
 def falla_scenarios_tx_init(model):
-    if model.config_value['scuc']=='tx' or model.config_value['scuc']=='all':
+    if model.config_value['scuc'] == 'tx' or model.config_value['scuc'] == 'all':
         return (l for l in model.LINEAS if model.linea_falla[l])
     else:
         return []
@@ -149,6 +157,7 @@ def bounds_theta(model, b):
 
 model.THETA = Var(model.BARRAS, bounds=bounds_theta)
 
+
 # ANGULO POR BARRAS SCENARIO
 def bounds_theta_scenario(model, b, s):
     if b == model.config_value['default_bar']:
@@ -156,6 +165,7 @@ def bounds_theta_scenario(model, b, s):
     return (-math.pi, math.pi)
 
 model.THETA_S = Var(model.BARRAS, model.CONTINGENCIAS, bounds=bounds_theta_scenario)
+
 
 ###########################################################################
 # CONSTRAINTS
@@ -242,11 +252,25 @@ model.CT_kirchhoff_2nd_law_contingency = Constraint(model.LINEAS, model.CONTINGE
                                                     rule=kirchhoff_contingency_rule)
 
 
-# CONSTRAINT 5: NO ENS in intact system
-# def bah(model, b):
-#     return model.ENS[b] == 0
-#
-# model.CT_noENS = Constraint(model.BARRAS, rule=bah)
+# CONSTRAINT 5: RESERVA POR ZONAS
+def zonal_reserve_up_rule(model, z):
+    if model.config_value['scuc'] == 'none':
+        return (sum(model.GEN_RESUP[g] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
+                model.zonal_rup[z])
+    else:
+        print model.config_value['scuc']
+        return Constraint.Skip
+
+
+def zonal_reserve_dn_rule(model, z):
+    if model.config_value['scuc'] == 'none':
+        return (sum(model.GEN_RESDN[g] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
+                model.zonal_rdn[z])
+    else:
+        return Constraint.Skip
+
+model.CT_zonal_reserve_up = Constraint(model.ZONAS, rule=zonal_reserve_up_rule)
+model.CT_zonal_reserve_dn = Constraint(model.ZONAS, rule=zonal_reserve_dn_rule)
 
 
 ###########################################################################
@@ -259,15 +283,14 @@ def system_cost_rule(model):
                   sum(model.ENS[b] * model.config_value['voll'] for b in model.BARRAS))
 
     costo_por_scenario = sum(model.ENS_S[b, s] * model.config_value['voll']
-                              for b in model.BARRAS for s in model.CONTINGENCIAS)\
-                         #+ sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
-                         #     for g in model.GENERADORES for s in model.CONTINGENCIAS)
+                              for b in model.BARRAS for s in model.CONTINGENCIAS)
 
-    #(sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
+    # + sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
+    #     for g in model.GENERADORES for s in model.CONTINGENCIAS)
+    # (sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
 
-
-    penalizacion_reservas = sum(0.01 * model.GEN_RESDN[g] for g in model.GENERADORES) + \
-                            sum(0.01 * model.GEN_RESUP[g] for g in model.GENERADORES)
+    penalizacion_reservas = (sum(0.01 * model.GEN_RESDN[g] for g in model.GENERADORES) +
+                             sum(0.01 * model.GEN_RESUP[g] for g in model.GENERADORES))
 
     return costo_base + costo_por_scenario + penalizacion_reservas
 
