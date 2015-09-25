@@ -1,0 +1,9 @@
+LINEAS,linea_fmax,linea_barA,linea_barB,linea_available,linea_x,linea_falla
+c1_SIC_Centro-SIC_CentroSurA,2806,SIC_Centro,SIC_CentroSurA,True,0.00004,True
+c1_SIC_CentroNorte-SIC_Centro,1439.06,SIC_CentroNorte,SIC_Centro,True,0.00004,True
+c1_SING_Centro-SIC_CentroNorte,1439.06,SING_Centro,SIC_CentroNorte,False,0.00004,True
+c1_SIC_CentroSurA-SIC_CentroSurC,3479.8,SIC_CentroSurA,SIC_CentroSurC,True,0.00004,True
+c1_SIC_CentroSurC-SIC_Sur,2028.1,SIC_CentroSurC,SIC_Sur,True,0.00004,True
+c1_SIC_Norte-SIC_CentroNorte,715.68,SIC_Norte,SIC_CentroNorte,True,0.00004,True
+c1_SING_Centro-SING_Sur,691,SING_Centro,SING_Sur,True,0.00004,True
+c1_SING_Norte-SING_Centro,473.15,SING_Norte,SING_Centro,True,0.00004,True

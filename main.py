@@ -30,7 +30,7 @@ data = DataPortal()
 
 data.load(filename=path_datos+'data_gen.csv',
           param=(model.gen_barra, model.gen_pmax, model.gen_pmin, model.gen_cvar, model.gen_falla,
-                 model.gen_rupmax, model.gen_rdnmax, model.gen_cfijo),
+                 model.gen_rupmax, model.gen_rdnmax, model.gen_cfijo, model.gen_factorcap, model.gen_tipo),
           index=model.GENERADORES)
 
 data.load(filename=path_datos+'data_lin.csv',
@@ -76,6 +76,7 @@ if instance.config_value['debugging']:
 
 
 # ------R E S U L T A D O S------------------------------------------------------------------------------
+print ('------R E S U L T A D O S---------------------')
 gen = instance.GENERADORES
 scen = instance.CONTINGENCIAS
 lin = instance.LINEAS
@@ -91,7 +92,7 @@ writer2 = csv.writer(ofile2, delimiter=',', quoting=csv.QUOTE_NONE)
 tmprow = []
 tmprow2 = []
 # header
-header = ['Generador', 'barra', 'Cvar', 'Pmax', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
+header = ['Generador', 'barra', 'zona', 'Cvar', 'Pmax', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
 for s in scen:
     header.append(str(s))
 writer.writerow(header)
@@ -100,6 +101,7 @@ writer2.writerow(header)
 for g in gen:
     tmprow.append(g)
     tmprow.append(instance.gen_barra[g])
+    tmprow.append(instance.zona[instance.gen_barra[g]])
     tmprow.append(instance.gen_cvar[g])
     tmprow.append(instance.gen_pmax[g])
     tmprow.append(instance.gen_pmin[g])

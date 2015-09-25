@@ -42,6 +42,8 @@ model.gen_falla = Param(model.GENERADORES)
 model.gen_rupmax = Param(model.GENERADORES)
 model.gen_rdnmax = Param(model.GENERADORES)
 model.gen_cfijo = Param(model.GENERADORES)
+model.gen_factorcap = Param(model.GENERADORES)
+model.gen_tipo = Param(model.GENERADORES)
 
 # LINEAS
 model.linea_fmax = Param(model.LINEAS)
@@ -103,13 +105,13 @@ model.GEN_UC = Var(model.GENERADORES, within=Binary)
 
 # Generacion del generador g, escenario base
 def bounds_gen_pg(model, g):
-    return 0, model.gen_pmax[g]
+    return 0, model.gen_pmax[g] * model.gen_factorcap[g]
 model.GEN_PG = Var(model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen_pg)
 
 
 # Generacion del generador g, Escenarios de falla
 def bounds_gen_pg_scenario(model, g, s):
-    return 0, model.gen_pmax[g]
+    return 0, model.gen_pmax[g] * model.gen_factorcap[g]
 model.GEN_PG_S = Var(model.GENERADORES, model.CONTINGENCIAS,
                      within=NonNegativeReals, bounds=bounds_gen_pg_scenario)
 
@@ -139,13 +141,19 @@ model.ENS_S = Var(model.BARRAS, model.CONTINGENCIAS, within=NonNegativeReals, bo
 
 # FLUJO MAXIMO LINEAS
 def bounds_fmax(model, l):
-    return -model.linea_fmax[l], model.linea_fmax[l]
+    if model.linea_available[l]:
+        return -model.linea_fmax[l], model.linea_fmax[l]
+    else:
+        return 0.0,0.0
 model.LIN_FLUJO = Var(model.LINEAS, bounds=bounds_fmax)
 
 
 # FLUJO MAXIMO LINEAS SCENARIO
 def bounds_fmax_scenario(model, l, s):
-    return -model.linea_fmax[l], model.linea_fmax[l]
+    if model.linea_available[l]:
+        return -model.linea_fmax[l], model.linea_fmax[l]
+    else:
+        return 0.0,0.0
 model.LIN_FLUJO_S = Var(model.LINEAS, model.CONTINGENCIAS, bounds=bounds_fmax_scenario)
 
 
@@ -202,11 +210,11 @@ model.CT_nodal_balance_contingency = Constraint(model.BARRAS, model.CONTINGENCIA
 
 # CONSTRAINT 2 y 3: Pmin & Pmax - Pre-fault
 def p_min_generators_rule(model, g):
-    return model.GEN_PG[g] - model.GEN_RESDN[g] >= model.GEN_UC[g] * model.gen_pmin[g]
+    return model.GEN_PG[g] - model.GEN_RESDN[g] >= model.GEN_UC[g] * model.gen_pmin[g] * model.gen_factorcap[g]
 
 
 def p_max_generators_rule(model, g):
-    return model.GEN_PG[g] + model.GEN_RESUP[g] <= model.GEN_UC[g] * model.gen_pmax[g]
+    return model.GEN_PG[g] + model.GEN_RESUP[g] <= model.GEN_UC[g] * model.gen_pmax[g] * model.gen_factorcap[g]
 
 model.CT_min_power = Constraint(model.GENERADORES, rule=p_min_generators_rule)
 
@@ -251,14 +259,12 @@ def kirchhoff_contingency_rule(model, l, s):
 model.CT_kirchhoff_2nd_law_contingency = Constraint(model.LINEAS, model.CONTINGENCIAS,
                                                     rule=kirchhoff_contingency_rule)
 
-
 # CONSTRAINT 5: RESERVA POR ZONAS
 def zonal_reserve_up_rule(model, z):
     if model.config_value['scuc'] == 'none':
         return (sum(model.GEN_RESUP[g] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
                 model.zonal_rup[z])
     else:
-        print model.config_value['scuc']
         return Constraint.Skip
 
 
