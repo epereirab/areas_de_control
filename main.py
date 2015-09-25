@@ -3,7 +3,7 @@ from coopr.pyomo import *
 from coopr.opt import SolverFactory
 #from pyomo.opt import SolverFactory
 
-from ReferenceModel import model
+from ReferenceModel import _model as model
 import csv
 import cStringIO
 import sys
