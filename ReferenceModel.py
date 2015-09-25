@@ -9,8 +9,8 @@ import math
 # from coopr.pyomo.base.sparse_indexed_component import *
 # SparseIndexedComponent._DEFAULT_INDEX_CHECKING_ENABLED = False
 
-model = AbstractModel()
-model.dual = Suffix(direction=Suffix.IMPORT)
+_model = AbstractModel()
+_model.dual = Suffix(direction=Suffix.IMPORT)
 
 ###########################################################################
 # SETS
@@ -18,15 +18,15 @@ model.dual = Suffix(direction=Suffix.IMPORT)
 
 
 # GENERADORES
-model.GENERADORES = Set()
+_model.GENERADORES = Set()
 # LINEAS
-model.LINEAS = Set()
+_model.LINEAS = Set()
 # BARRAS
-model.BARRAS = Set()
+_model.BARRAS = Set()
 # BARRAS
-model.CONFIG = Set()
+_model.CONFIG = Set()
 # ZONAS
-model.ZONAS = Set()
+_model.ZONAS = Set()
 
 
 ###########################################################################
@@ -34,36 +34,36 @@ model.ZONAS = Set()
 ###########################################################################
 
 # GENERADORES
-model.gen_pmax = Param(model.GENERADORES)
-model.gen_pmin = Param(model.GENERADORES)
-model.gen_barra = Param(model.GENERADORES)
-model.gen_cvar = Param(model.GENERADORES)
-model.gen_falla = Param(model.GENERADORES)
-model.gen_rupmax = Param(model.GENERADORES)
-model.gen_rdnmax = Param(model.GENERADORES)
-model.gen_cfijo = Param(model.GENERADORES)
-model.gen_factorcap = Param(model.GENERADORES)
-model.gen_tipo = Param(model.GENERADORES)
+_model.gen_pmax = Param(_model.GENERADORES)
+_model.gen_pmin = Param(_model.GENERADORES)
+_model.gen_barra = Param(_model.GENERADORES)
+_model.gen_cvar = Param(_model.GENERADORES)
+_model.gen_falla = Param(_model.GENERADORES)
+_model.gen_rupmax = Param(_model.GENERADORES)
+_model.gen_rdnmax = Param(_model.GENERADORES)
+_model.gen_cfijo = Param(_model.GENERADORES)
+_model.gen_factorcap = Param(_model.GENERADORES)
+_model.gen_tipo = Param(_model.GENERADORES)
 
 # LINEAS
-model.linea_fmax = Param(model.LINEAS)
-model.linea_barA = Param(model.LINEAS)
-model.linea_barB = Param(model.LINEAS)
-model.linea_available = Param(model.LINEAS)
-model.linea_falla = Param(model.LINEAS)
-model.linea_x = Param(model.LINEAS)
+_model.linea_fmax = Param(_model.LINEAS)
+_model.linea_barA = Param(_model.LINEAS)
+_model.linea_barB = Param(_model.LINEAS)
+_model.linea_available = Param(_model.LINEAS)
+_model.linea_falla = Param(_model.LINEAS)
+_model.linea_x = Param(_model.LINEAS)
 
 # BARRAS
-model.demanda = Param(model.BARRAS)
-model.zona = Param(model.BARRAS)
+_model.demanda = Param(_model.BARRAS)
+_model.zona = Param(_model.BARRAS)
 
 # ZONAS
-model.zonal_rup = Param(model.ZONAS)
-model.zonal_rdn = Param(model.ZONAS)
+_model.zonal_rup = Param(_model.ZONAS)
+_model.zonal_rdn = Param(_model.ZONAS)
 
 # PARAMETROS DE CONFIGURACION; 
 # Valores: 1) all (gx y tx), 2) gx (solo gx), 3) tx (solo tx), 4) zonal (reserva por zonas)
-model.config_value = Param(model.CONFIG)
+_model.config_value = Param(_model.CONFIG)
 
 
 ###########################################################################
@@ -75,7 +75,7 @@ def falla_scenarios_gx_init(model):
         return (g for g in model.GENERADORES if model.gen_falla[g])
     else:
         return []
-model.SCENARIOS_FALLA_GX = Set(initialize=falla_scenarios_gx_init)
+_model.SCENARIOS_FALLA_GX = Set(initialize=falla_scenarios_gx_init)
 
 
 def falla_scenarios_tx_init(model):
@@ -83,7 +83,7 @@ def falla_scenarios_tx_init(model):
         return (l for l in model.LINEAS if model.linea_falla[l])
     else:
         return []
-model.SCENARIOS_FALLA_TX = Set(initialize=falla_scenarios_tx_init)
+_model.SCENARIOS_FALLA_TX = Set(initialize=falla_scenarios_tx_init)
 
 
 def fault_scenarios_init(model):
@@ -93,50 +93,50 @@ def fault_scenarios_init(model):
     for l in model.SCENARIOS_FALLA_TX:
         s.append(l)
     return s
-model.CONTINGENCIAS = Set(initialize=fault_scenarios_init)
+_model.CONTINGENCIAS = Set(initialize=fault_scenarios_init)
 
 ###########################################################################
 # VARIABLES
 ###########################################################################
 
 # Unit commitment
-model.GEN_UC = Var(model.GENERADORES, within=Binary)
+_model.GEN_UC = Var(_model.GENERADORES, within=Binary)
 
 
 # Generacion del generador g, escenario base
 def bounds_gen_pg(model, g):
     return 0, model.gen_pmax[g] * model.gen_factorcap[g]
-model.GEN_PG = Var(model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen_pg)
+_model.GEN_PG = Var(_model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen_pg)
 
 
 # Generacion del generador g, Escenarios de falla
 def bounds_gen_pg_scenario(model, g, s):
     return 0, model.gen_pmax[g] * model.gen_factorcap[g]
-model.GEN_PG_S = Var(model.GENERADORES, model.CONTINGENCIAS,
+_model.GEN_PG_S = Var(_model.GENERADORES, _model.CONTINGENCIAS,
                      within=NonNegativeReals, bounds=bounds_gen_pg_scenario)
 
 # Reserva UP del generador g, escenario base
 def bounds_gen_resup(model, g):
     return 0, model.gen_rupmax[g]
-model.GEN_RESUP = Var(model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen_resup)
+_model.GEN_RESUP = Var(_model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen_resup)
 
 
 # Reserva DOWN del generador g, escenario base
 def bounds_gen_resdn(model, g):
     return 0, model.gen_rdnmax[g]
-model.GEN_RESDN = Var(model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen_resdn)
+_model.GEN_RESDN = Var(_model.GENERADORES, within=NonNegativeReals, bounds=bounds_gen_resdn)
 
 
 # ENS base
 def bounds_ens(model, b):
     return 0, model.demanda[b]
-model.ENS = Var(model.BARRAS, within=NonNegativeReals, bounds=bounds_ens)
+_model.ENS = Var(_model.BARRAS, within=NonNegativeReals, bounds=bounds_ens)
 
 
 # ENS ESCENARIOS
 def bounds_ens_scenario(model, b, s):
     return 0, model.demanda[b]
-model.ENS_S = Var(model.BARRAS, model.CONTINGENCIAS, within=NonNegativeReals, bounds=bounds_ens_scenario)
+_model.ENS_S = Var(_model.BARRAS, _model.CONTINGENCIAS, within=NonNegativeReals, bounds=bounds_ens_scenario)
 
 
 # FLUJO MAXIMO LINEAS
@@ -145,7 +145,7 @@ def bounds_fmax(model, l):
         return -model.linea_fmax[l], model.linea_fmax[l]
     else:
         return 0.0,0.0
-model.LIN_FLUJO = Var(model.LINEAS, bounds=bounds_fmax)
+_model.LIN_FLUJO = Var(_model.LINEAS, bounds=bounds_fmax)
 
 
 # FLUJO MAXIMO LINEAS SCENARIO
@@ -154,7 +154,7 @@ def bounds_fmax_scenario(model, l, s):
         return -model.linea_fmax[l], model.linea_fmax[l]
     else:
         return 0.0,0.0
-model.LIN_FLUJO_S = Var(model.LINEAS, model.CONTINGENCIAS, bounds=bounds_fmax_scenario)
+_model.LIN_FLUJO_S = Var(_model.LINEAS, _model.CONTINGENCIAS, bounds=bounds_fmax_scenario)
 
 
 # ANGULO POR BARRAS
@@ -163,7 +163,7 @@ def bounds_theta(model, b):
         return (0.0,0.0)
     return (-math.pi, math.pi)
 
-model.THETA = Var(model.BARRAS, bounds=bounds_theta)
+_model.THETA = Var(_model.BARRAS, bounds=bounds_theta)
 
 
 # ANGULO POR BARRAS SCENARIO
@@ -172,7 +172,7 @@ def bounds_theta_scenario(model, b, s):
         return (0.0,0.0)
     return (-math.pi, math.pi)
 
-model.THETA_S = Var(model.BARRAS, model.CONTINGENCIAS, bounds=bounds_theta_scenario)
+_model.THETA_S = Var(_model.BARRAS, _model.CONTINGENCIAS, bounds=bounds_theta_scenario)
 
 
 ###########################################################################
@@ -189,7 +189,7 @@ def nodal_balance_rule(model, b):
 
     return lside == rside
 
-model.CT_nodal_balance = Constraint(model.BARRAS, rule=nodal_balance_rule)
+_model.CT_nodal_balance = Constraint(_model.BARRAS, rule=nodal_balance_rule)
 
 
 # CONSTRAINT 1: Balance nodal por barra - post-fault
@@ -204,7 +204,7 @@ def nodal_balance_contingency_rule(model, b, s):
 
     return lside == rside
 
-model.CT_nodal_balance_contingency = Constraint(model.BARRAS, model.CONTINGENCIAS,
+_model.CT_nodal_balance_contingency = Constraint(_model.BARRAS, _model.CONTINGENCIAS,
                                                 rule=nodal_balance_contingency_rule)
 
 
@@ -216,9 +216,9 @@ def p_min_generators_rule(model, g):
 def p_max_generators_rule(model, g):
     return model.GEN_PG[g] + model.GEN_RESUP[g] <= model.GEN_UC[g] * model.gen_pmax[g] * model.gen_factorcap[g]
 
-model.CT_min_power = Constraint(model.GENERADORES, rule=p_min_generators_rule)
+_model.CT_min_power = Constraint(_model.GENERADORES, rule=p_min_generators_rule)
 
-model.CT_max_power = Constraint(model.GENERADORES, rule=p_max_generators_rule)
+_model.CT_max_power = Constraint(_model.GENERADORES, rule=p_max_generators_rule)
 
 
 # CONSTRAINT 2 y 3: Pmin & Pmax - Post-fault
@@ -233,9 +233,9 @@ def p_max_generators_contingency_rule(model, g, s):
         return Constraint.Skip
     return model.GEN_PG_S[g, s] <= model.GEN_PG[g] + model.GEN_RESUP[g]
 
-model.CT_min_power_contingency = Constraint(model.GENERADORES, model.CONTINGENCIAS,
+_model.CT_min_power_contingency = Constraint(_model.GENERADORES, _model.CONTINGENCIAS,
                                             rule=p_min_generators_contingency_rule)
-model.CT_max_power_contingency = Constraint(model.GENERADORES, model.CONTINGENCIAS,
+_model.CT_max_power_contingency = Constraint(_model.GENERADORES, _model.CONTINGENCIAS,
                                             rule=p_max_generators_contingency_rule)
 
 
@@ -245,7 +245,7 @@ def kirchhoff_rule(model, l):
     lside = 100 * (model.THETA[model.linea_barB[l]] - model.THETA[model.linea_barA[l]]) / model.linea_x[l]
     return rside == lside
 
-model.CT_kirchhoff_2nd_law = Constraint(model.LINEAS, rule=kirchhoff_rule)
+_model.CT_kirchhoff_2nd_law = Constraint(_model.LINEAS, rule=kirchhoff_rule)
 
 
 # CONSTRAINT 4: DC Flow - post-fault
@@ -256,7 +256,7 @@ def kirchhoff_contingency_rule(model, l, s):
     lside = 100 * (model.THETA_S[model.linea_barB[l], s] - model.THETA_S[model.linea_barA[l], s]) / model.linea_x[l]
     return rside == lside
 
-model.CT_kirchhoff_2nd_law_contingency = Constraint(model.LINEAS, model.CONTINGENCIAS,
+_model.CT_kirchhoff_2nd_law_contingency = Constraint(_model.LINEAS, _model.CONTINGENCIAS,
                                                     rule=kirchhoff_contingency_rule)
 
 # CONSTRAINT 5: RESERVA POR ZONAS
@@ -275,8 +275,8 @@ def zonal_reserve_dn_rule(model, z):
     else:
         return Constraint.Skip
 
-model.CT_zonal_reserve_up = Constraint(model.ZONAS, rule=zonal_reserve_up_rule)
-model.CT_zonal_reserve_dn = Constraint(model.ZONAS, rule=zonal_reserve_dn_rule)
+_model.CT_zonal_reserve_up = Constraint(_model.ZONAS, rule=zonal_reserve_up_rule)
+_model.CT_zonal_reserve_dn = Constraint(_model.ZONAS, rule=zonal_reserve_dn_rule)
 
 
 ###########################################################################
@@ -301,4 +301,4 @@ def system_cost_rule(model):
     return costo_base + costo_por_scenario + penalizacion_reservas
 
 
-model.Objective_rule = Objective(rule=system_cost_rule, sense=minimize)
+_model.Objective_rule = Objective(rule=system_cost_rule, sense=minimize)
