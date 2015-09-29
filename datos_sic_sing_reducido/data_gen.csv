@@ -41,6 +41,14 @@ Los_Pinos,SIC_CentroSurC,104.194,62.5164,148.5568851,True,999,999,0,1,Diesel
 Cardones,SIC_CentroNorte,153.04,91.824,174.37435,True,999,999,0,1,Diesel
 Taltal_01_Diesel,SIC_Norte,110,66,176.8500902,True,999,999,0,1,Diesel
 Taltal_02_Diesel,SIC_Norte,110,66,176.8500902,True,999,999,0,1,Diesel
+Dona_Carmen,SIC_Centro,66.5,39.9,157.8250806,True,999,999,0,1,Diesel
+Coronel_TG_Diesel,SIC_CentroSurC,46.7,28.02,165.8908952,True,999,999,0,1,Diesel
+Espinos_01,SIC_Centro,100,60,175.315902,True,999,999,0,1,Diesel
+Los_Vientos,SIC_Centro,132,79.2,179.3565017,True,999,999,0,1,Diesel
+Teno,SIC_CentroSurA,59,35.4,180.5514389,True,999,999,0,1,Diesel
+Santa_Lidia,SIC_CentroSurC,139,83.4,181.2146294,True,999,999,0,1,Diesel
+Antilhue_TG_01,SIC_Sur,51.6,30.96,197.3656384,True,999,999,0,1,Diesel
+Antilhue_TG_02,SIC_Sur,50.9,30.54,197.3656384,True,999,999,0,1,Diesel
 El_Toro,SIC_CentroSurC,450,0,150,True,999,999,0,1,Embalse
 Rapel,SIC_Centro,375,0,155,True,999,999,0,1,Embalse
 Canutillar,SIC_Sur,169,40,120,True,999,999,0,1,Embalse
