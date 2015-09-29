@@ -39,7 +39,7 @@ data.load(filename=path_datos+'data_lin.csv',
           index=model.LINEAS)
 
 data.load(filename=path_datos+'data_bar.csv',
-          param=(model.demanda, model.zona),
+          param=(model.demanda, model.zona, model.vecinos),
           index=model.BARRAS)
 
 data.load(filename=path_datos+'data_zone.csv',

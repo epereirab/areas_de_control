@@ -56,6 +56,7 @@ _model.linea_x = Param(_model.LINEAS)
 # BARRAS
 _model.demanda = Param(_model.BARRAS)
 _model.zona = Param(_model.BARRAS)
+_model.vecinos = Param(_model.BARRAS)
 
 # ZONAS
 _model.zonal_rup = Param(_model.ZONAS)
@@ -69,9 +70,19 @@ _model.config_value = Param(_model.CONFIG)
 ###########################################################################
 # SETS FROM PARAMETERS
 ###########################################################################
+def vecinos_generadores_init(model,g):
+    vecinos=[]
+    for v in model.vecinos[model.gen_barra[g]]:
+        for gg in model.GENERADORES:
+            if model.gen_barra[gg]==v and gg!=g:
+                vecinos.append(gg)
+    return vecinos
+
+_model.VECINOS_GX = Set(_model.GENERADORES, initialize=vecinos_generadores_init)
 
 def falla_scenarios_gx_init(model):
-    if model.config_value['scuc'] == 'gx' or model.config_value['scuc'] == 'all':
+    if model.config_value['scuc'] == 'gx' or model.config_value['scuc'] == 'gx_vecinos' \
+        or model.config_value['scuc'] == 'all' :
         return (g for g in model.GENERADORES if model.gen_falla[g])
     else:
         return []
@@ -225,12 +236,23 @@ _model.CT_max_power = Constraint(_model.GENERADORES, rule=p_max_generators_rule)
 def p_min_generators_contingency_rule(model, g, s):
     if g == s:
         return model.GEN_PG_S[g, s] == 0
-    return model.GEN_PG_S[g, s] >= model.GEN_PG[g] - model.GEN_RESDN[g]
+    if model.config_value['scuc'] == 'gx_vecinos':
+        if g in model.VECINOS_GX[s]:
+            return model.GEN_PG_S[g, s] >= model.GEN_PG[g] - model.GEN_RESDN[g]
+        else:
+            return model.GEN_PG_S[g, s] == model.GEN_PG[g]
+    else:
+        return model.GEN_PG_S[g, s] >= model.GEN_PG[g] - model.GEN_RESDN[g]
 
 
 def p_max_generators_contingency_rule(model, g, s):
     if g == s:
         return Constraint.Skip
+    if model.config_value['scuc'] == 'gx_vecinos':
+        if g in model.VECINOS_GX[s]:
+            return model.GEN_PG_S[g, s] <= model.GEN_PG[g] + model.GEN_RESUP[g]
+        else:
+            return Constraint.Skip
     return model.GEN_PG_S[g, s] <= model.GEN_PG[g] + model.GEN_RESUP[g]
 
 _model.CT_min_power_contingency = Constraint(_model.GENERADORES, _model.CONTINGENCIAS,
@@ -289,16 +311,14 @@ def system_cost_rule(model):
                   sum(model.ENS[b] * model.config_value['voll'] for b in model.BARRAS))
 
     costo_por_scenario = sum(model.ENS_S[b, s] * model.config_value['voll']
-                              for b in model.BARRAS for s in model.CONTINGENCIAS)
-
-    # + sum(model.GEN_PG_S[g, s] * model.gen_cvar[g]
-    #     for g in model.GENERADORES for s in model.CONTINGENCIAS)
+                              for b in model.BARRAS for s in model.CONTINGENCIAS) \
+                         #+ sum(model.GEN_PG_S[g, s] * model.gen_cvar[g] for g in model.GENERADORES for s in model.CONTINGENCIAS)
     # (sum(model.gen_cfijo[g] * model.GEN_UC[g] for g in model.GENERADORES) +
 
     penalizacion_reservas = (sum(0.01 * model.GEN_RESDN[g] for g in model.GENERADORES) +
                              sum(0.01 * model.GEN_RESUP[g] for g in model.GENERADORES))
 
-    return costo_base + costo_por_scenario + penalizacion_reservas
+    return costo_base + costo_por_scenario/(len(model.CONTINGENCIAS)) + penalizacion_reservas
 
 
 _model.Objective_rule = Objective(rule=system_cost_rule, sense=minimize)
