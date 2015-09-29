@@ -318,7 +318,7 @@ def system_cost_rule(model):
     penalizacion_reservas = (sum(0.01 * model.GEN_RESDN[g] for g in model.GENERADORES) +
                              sum(0.01 * model.GEN_RESUP[g] for g in model.GENERADORES))
 
-    return costo_base + costo_por_scenario/(len(model.CONTINGENCIAS)) + penalizacion_reservas
+    return costo_base + costo_por_scenario + penalizacion_reservas
 
 
 _model.Objective_rule = Objective(rule=system_cost_rule, sense=minimize)
