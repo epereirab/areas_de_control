@@ -74,9 +74,9 @@ if instance.config_value['debugging']:
     # sys.stdout.write(instance.pprint())
     output.close()
 
-
+print ('------M O D E L O :  "%s"  T E R M I N A D O------' % instance.config_value['scuc'])
 # ------R E S U L T A D O S------------------------------------------------------------------------------
-print ('------R E S U L T A D O S---------------------')
+print ('------E S C R I B I E N D O --- R E S U L T A D O S------')
 gen = instance.GENERADORES
 scen = instance.CONTINGENCIAS
 lin = instance.LINEAS
