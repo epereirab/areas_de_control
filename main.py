@@ -74,9 +74,9 @@ if instance.config_value['debugging']:
     # sys.stdout.write(instance.pprint())
     output.close()
 
-print ('------M O D E L O :  "%s"  T E R M I N A D O------' % instance.config_value['scuc'])
+print ('\n------M O D E L O :  "%s"  T E R M I N A D O------\n' % instance.config_value['scuc'])
 # ------R E S U L T A D O S------------------------------------------------------------------------------
-print ('------E S C R I B I E N D O --- R E S U L T A D O S------')
+print ('------E S C R I B I E N D O --- R E S U L T A D O S------\n')
 gen = instance.GENERADORES
 scen = instance.CONTINGENCIAS
 lin = instance.LINEAS
@@ -92,7 +92,7 @@ writer2 = csv.writer(ofile2, delimiter=',', quoting=csv.QUOTE_NONE)
 tmprow = []
 tmprow2 = []
 # header
-header = ['Generador', 'barra', 'zona', 'Cvar', 'Pmax', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
+header = ['Generador', 'barra', 'zona', 'tipo', 'Cvar', 'Pmax', 'Pmax_eff', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
 for s in scen:
     header.append(str(s))
 writer.writerow(header)
@@ -102,8 +102,10 @@ for g in gen:
     tmprow.append(g)
     tmprow.append(instance.gen_barra[g])
     tmprow.append(instance.zona[instance.gen_barra[g]])
+    tmprow.append(instance.gen_tipo[g])
     tmprow.append(instance.gen_cvar[g])
     tmprow.append(instance.gen_pmax[g])
+    tmprow.append(instance.gen_pmax[g] * instance.gen_factorcap[g])
     tmprow.append(instance.gen_pmin[g])
     tmprow.append(instance.GEN_UC[g].value)
     tmprow.append(instance.GEN_PG[g].value)
