@@ -229,6 +229,30 @@ tmprow = []
 
 ofile.close()
 
+# RESULTADOS POR AREA
+
+ofile = open(path_resultados + 'resultados_zonas.csv', "wb")
+writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
+tmprow = []
+# header
+header = ['Zona', 'TotalRUP', 'TotalRDN']
+for z in instance.ZONAS:
+    header.append('RES-TO-ZONE->' + z)
+writer.writerow(header)
+for z in instance.ZONAS:
+    tmprow.append(str(z))
+    tmprow.append(sum(instance.GEN_RESUP[g].value for g in gen if instance.zona[instance.gen_barra[g]] == z))
+    tmprow.append(sum(instance.GEN_RESDN[g].value for g in gen if instance.zona[instance.gen_barra[g]] == z))
+    for z2 in instance.ZONAS:
+        if z == z2:
+            tmprow.append('-')
+        else:
+            tmprow.append(instance.SHARED_RESUP[z, z2].value)
+
+    writer.writerow(tmprow)
+    tmprow = []
+
+ofile.close()
 
 
 
