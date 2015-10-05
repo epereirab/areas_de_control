@@ -1,14 +1,11 @@
 from coopr.pyomo import *
-#from pyomo.environ import *
 from coopr.opt import SolverFactory
-#from pyomo.opt import SolverFactory
 
 from ReferenceModel import _model as model
 import csv
 import cStringIO
 import sys
 
-__author__ = 'MPro'
 ####  - - - - - - LEER RUTAS DE DATOS Y RESULTADOS  - - - - - - #######
 
 config_rutas = open('config_rutas.txt', 'r')
@@ -93,8 +90,10 @@ tmprow = []
 tmprow2 = []
 # header
 header = ['Generador', 'barra', 'zona', 'tipo', 'Cvar', 'Pmax', 'Pmax_eff', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
-for s in scen:
-    header.append(str(s))
+for z in instance.ZONAS:
+    for s in scen:
+        if z == instance.zona[instance.gen_barra[s]]:
+            header.append(str(z) + '-' + str(s))
 writer.writerow(header)
 writer2.writerow(header)
 
@@ -112,13 +111,15 @@ for g in gen:
     tmprow.append(instance.GEN_RESUP[g].value)
     tmprow.append(instance.GEN_RESDN[g].value)
     tmprow2 = list(tmprow)
-    for s in scen:
-        tmprow.append(instance.GEN_PG_S[g, s].value)
-        if s == g:
-            tmprow2.append('0')
 
-        else:
-            tmprow2.append(instance.GEN_PG_S[g, s].value-instance.GEN_PG[g].value)
+    for z in instance.ZONAS:
+        for s in scen:
+            if z == instance.zona[instance.gen_barra[s]]:
+                tmprow.append(instance.GEN_PG_S[g, s].value)
+                if s == g:
+                    tmprow2.append('-')
+                else:
+                    tmprow2.append(instance.GEN_PG_S[g, s].value-instance.GEN_PG[g].value)
 
     writer.writerow(tmprow)
     writer2.writerow(tmprow2)
@@ -134,17 +135,20 @@ writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 tmprow = []
 # header
 header = ['Linea', 'Flujo_MAX', 'Flujo_0']
-for s in scen:
-    header.append(str(s))
+for z in instance.ZONAS:
+    for s in scen:
+        if z == instance.zona[instance.gen_barra[s]]:
+            header.append(str(z) + '-' + str(s))
 writer.writerow(header)
 
 for l in lin:
     tmprow.append(l)
     tmprow.append(instance.linea_fmax[l])
     tmprow.append(instance.LIN_FLUJO[l].value)
-
-    for s in scen:
-        tmprow.append(instance.LIN_FLUJO_S[l, s].value)
+    for z in instance.ZONAS:
+        for s in scen:
+            if z == instance.zona[instance.gen_barra[s]]:
+                tmprow.append(instance.LIN_FLUJO_S[l, s].value)
     writer.writerow(tmprow)
     tmprow = []
 
@@ -229,7 +233,7 @@ tmprow = []
 
 ofile.close()
 
-# RESULTADOS POR AREA
+# RESULTADOS POR AREA ---------------------------------------------------------------------------------------
 
 ofile = open(path_resultados + 'resultados_zonas.csv', "wb")
 writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
@@ -243,11 +247,12 @@ for z in instance.ZONAS:
     tmprow.append(str(z))
     tmprow.append(sum(instance.GEN_RESUP[g].value for g in gen if instance.zona[instance.gen_barra[g]] == z))
     tmprow.append(sum(instance.GEN_RESDN[g].value for g in gen if instance.zona[instance.gen_barra[g]] == z))
-    for z2 in instance.ZONAS:
-        if z == z2:
-            tmprow.append('-')
-        else:
-            tmprow.append(instance.SHARED_RESUP[z, z2].value)
+    if instance.config_value['scuc'] == 'zonal_sharing':
+        for z2 in instance.ZONAS:
+            if z == z2:
+                tmprow.append('-')
+            else:
+                tmprow.append(instance.SHARED_RESUP[z, z2].value)
 
     writer.writerow(tmprow)
     tmprow = []
