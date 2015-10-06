@@ -93,7 +93,8 @@ header = ['Generador', 'barra', 'zona', 'tipo', 'Cvar', 'Pmax', 'Pmax_eff', 'Pmi
 for z in instance.ZONAS:
     for s in scen:
         if z == instance.zona[instance.gen_barra[s]]:
-            header.append(str(z) + '-' + str(s))
+            if not instance.GEN_PG[s] == 0:
+                header.append(str(z) + '-' + str(s))
 writer.writerow(header)
 writer2.writerow(header)
 
@@ -115,11 +116,12 @@ for g in gen:
     for z in instance.ZONAS:
         for s in scen:
             if z == instance.zona[instance.gen_barra[s]]:
-                tmprow.append(instance.GEN_PG_S[g, s].value)
-                if s == g:
-                    tmprow2.append('-')
-                else:
-                    tmprow2.append(instance.GEN_PG_S[g, s].value-instance.GEN_PG[g].value)
+                if not instance.GEN_PG[s] == 0:
+                    tmprow.append(instance.GEN_PG_S[g, s].value)
+                    if s == g:
+                        tmprow2.append('-')
+                    else:
+                        tmprow2.append(instance.GEN_PG_S[g, s].value-instance.GEN_PG[g].value)
 
     writer.writerow(tmprow)
     writer2.writerow(tmprow2)
@@ -138,7 +140,8 @@ header = ['Linea', 'Flujo_MAX', 'Flujo_0']
 for z in instance.ZONAS:
     for s in scen:
         if z == instance.zona[instance.gen_barra[s]]:
-            header.append(str(z) + '-' + str(s))
+            if not instance.GEN_PG[s] == 0:
+                header.append(str(z) + '-' + str(s))
 writer.writerow(header)
 
 for l in lin:
@@ -148,7 +151,8 @@ for l in lin:
     for z in instance.ZONAS:
         for s in scen:
             if z == instance.zona[instance.gen_barra[s]]:
-                tmprow.append(instance.LIN_FLUJO_S[l, s].value)
+                if not instance.GEN_PG[s] == 0:
+                    tmprow.append(instance.LIN_FLUJO_S[l, s].value)
     writer.writerow(tmprow)
     tmprow = []
 
