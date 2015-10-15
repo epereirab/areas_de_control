@@ -131,9 +131,13 @@ _model.ZONES_INTERCONNECTIONS = Set(_model.ZONE2ZONE, initialize=zones_interconn
 # VARIABLES
 ###########################################################################
 
-# Unit commitment
+# Unit commitment generacion
 _model.GEN_UC = Var(_model.GENERADORES, _model.ESCENARIOS,
                     within=Binary)
+
+# Unit commitment resreva
+_model.GEN_RES_UC = Var(_model.GENERADORES, _model.ESCENARIOS,
+                        within=Binary)
 
 
 # Generacion del generador g, escenario base
@@ -392,6 +396,34 @@ def max_shared_resdn_rule(model, z, z2, s):
 
 _model.CT_max_shared_resup = Constraint(_model.ZONE2ZONE, _model.ESCENARIOS, rule=max_shared_resup_rule)
 _model.CT_max_shared_resdn = Constraint(_model.ZONE2ZONE, _model.ESCENARIOS, rule=max_shared_resdn_rule)
+
+
+# CONSTRAINT 8: RESERVA MINIMA y MAXIMA (modelos Zonales)
+def min_reserve_up(model, g, s):
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'none':
+        return model.GEN_RESUP[g, s] >= model.GEN_RES_UC[g, s] * model.config_value['rup_min']
+    else:
+        return Constraint.Skip
+
+
+def max_reserve_up(model, g, s):
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'none':
+        return model.GEN_RESUP[g, s] <= model.GEN_RES_UC[g, s] * model.gen_rupmax[g, s]
+    else:
+        return Constraint.Skip
+
+_model.CT_max_reserve_up = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=max_reserve_up)
+_model.CT_min_reserve_up = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=min_reserve_up)
+
+
+# CONSTRAINT 8: CANTIDAD MINIMA DE GENERADORES APORTANDO RESERVA
+def min_reserve_gen_number(model, s):
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'none':
+        return sum(model.GEN_RES_UC[g, s] for g in model.GENERADORES) >= model.config_value['ngen_min']
+    else:
+        return Constraint.Skip
+
+_model.CT_min_reserve_gen_number = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=min_reserve_up)
 
 
 ###########################################################################

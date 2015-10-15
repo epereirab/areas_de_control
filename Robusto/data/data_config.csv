@@ -1,0 +1,7 @@
+CONFIG,config_value
+scuc,zonal_sharing
+voll,50000
+debugging,False
+default_bar,SIC_Centro
+rup_min,10
+ngen_min,2
