@@ -417,13 +417,14 @@ _model.CT_min_reserve_up = Constraint(_model.GENERADORES, _model.ESCENARIOS, rul
 
 
 # CONSTRAINT 8: CANTIDAD MINIMA DE GENERADORES APORTANDO RESERVA
-def min_reserve_gen_number(model, s):
+def min_reserve_gen_number(model, z, s):
     if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'none':
-        return sum(model.GEN_RES_UC[g, s] for g in model.GENERADORES) >= model.config_value['ngen_min']
+        return (sum(model.GEN_RES_UC[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
+                model.config_value['ngen_min'])
     else:
         return Constraint.Skip
 
-_model.CT_min_reserve_gen_number = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=min_reserve_up)
+_model.CT_min_reserve_gen_number = Constraint(_model.ZONAS, _model.ESCENARIOS, rule=min_reserve_gen_number)
 
 
 ###########################################################################
