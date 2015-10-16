@@ -47,6 +47,13 @@ _model.gen_cfijo = Param(_model.GENERADORES)
 _model.gen_factorcap = Param(_model.GENERADORES, _model.ESCENARIOS)
 _model.gen_tipo = Param(_model.GENERADORES)
 
+#parametros de despacho generadores
+
+_model.gen_d_uc=Param(_model.GENERADORES, _model.ESCENARIOS)
+_model.gen_d_pg=Param(_model.GENERADORES, _model.ESCENARIOS)
+_model.gen_d_resup=Param(_model.GENERADORES, _model.ESCENARIOS)
+_model.gen_d_resdn=Param(_model.GENERADORES, _model.ESCENARIOS)
+
 # LINEAS
 _model.linea_fmax = Param(_model.LINEAS)
 _model.linea_barA = Param(_model.LINEAS)
@@ -65,7 +72,7 @@ _model.zonal_rup = Param(_model.ZONAS)
 _model.zonal_rdn = Param(_model.ZONAS)
 
 # PARAMETROS DE CONFIGURACION; 
-# Valores: 1) all (gx y tx), 2) gx (solo gx), 3) tx (solo tx), 4) zonal (reserva por zonas) 5) zonal_sharing
+# Valores: 1) all (gx y tx), 2) gx (solo gx), 3) tx (solo tx), 4) zonal (reserva por zonas) 5) zonal_sharing 6) forced_scuc
 _model.config_value = Param(_model.CONFIG)
 
 
@@ -85,7 +92,7 @@ _model.VECINOS_GX = Set(_model.GENERADORES, initialize=vecinos_generadores_init)
 
 def falla_scenarios_gx_init(model):
     if model.config_value['scuc'] == 'gx' or model.config_value['scuc'] == 'gx_vecinos' or \
-                    model.config_value['scuc'] == 'all':
+                    model.config_value['scuc'] == 'all' or model.config_value['scuc'] == 'forced_scuc':
         return (g for g in model.GENERADORES if model.gen_falla[g])
     else:
         return []
@@ -426,7 +433,31 @@ def min_reserve_gen_number(model, z, s):
 
 _model.CT_min_reserve_gen_number = Constraint(_model.ZONAS, _model.ESCENARIOS, rule=min_reserve_gen_number)
 
+#Forzando despachos
 
+def forced_pg_rule(model, g, s):
+    if model.config_value['scuc'] == 'forced_scuc':
+        return model.GEN_PG[g, s] == model.gen_d_pg[g,s]
+    else:
+        return Constraint.Skip
+
+_model.CT_forced_pg = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_pg_rule)
+
+def forced_uc_rule(model, g, s):
+    if model.config_value['scuc'] == 'forced_scuc':
+        return model.GEN_UC[g, s] == model.gen_d_uc[g,s]
+    else:
+        return Constraint.Skip
+
+_model.CT_forced_uc = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_uc_rule)
+
+def forced_resup_rule(model, g, s):
+    if model.config_value['scuc'] == 'forced_scuc':
+        return model.GEN_RESUP[g, s] == model.gen_d_resup[g,s]
+    else:
+        return Constraint.Skip
+
+_model.CT_forced_resup = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_resup_rule)
 ###########################################################################
 # FUNCION OBJETIVO
 ###########################################################################

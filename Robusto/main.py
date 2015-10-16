@@ -38,6 +38,10 @@ data.load(filename=path_datos+'data_gen_dyn.csv',
           param=(model.gen_cvar, model.gen_rupmax, model.gen_rdnmax, model.gen_factorcap),
           index=(model.GENERADORES, model.ESCENARIOS))
 
+data.load(filename=path_datos+'data_gen_despachos.csv',
+          param=(model.gen_d_uc, model.gen_d_pg, model.gen_d_resup, model.gen_d_resdn),
+          index=(model.GENERADORES, model.ESCENARIOS))
+
 data.load(filename=path_datos+'data_lin.csv',
           param=(model.linea_fmax, model.linea_barA, model.linea_barB, model.linea_available, model.linea_x,
                  model.linea_falla),

@@ -1,5 +1,5 @@
 CONFIG,config_value
-scuc,zonal_sharing
+scuc,forced_scuc
 voll,50000
 debugging,False
 default_bar,SIC_Centro
