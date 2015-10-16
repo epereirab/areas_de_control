@@ -25,6 +25,7 @@ for line in config_rutas:
 #  - - - - - - CARGAR DATOS AL MODELO  - - - - - - ##
 
 print ("--- Leyendo data ---")
+print ("path input:" +path_datos)
 
 data = DataPortal()
 
