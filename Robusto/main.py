@@ -5,6 +5,7 @@ from ReferenceModel import _model as model
 import cStringIO
 import sys
 import exporter
+import os
 
 #  - - - - - - LEER RUTAS DE DATOS Y RESULTADOS  - - - - - - #
 
@@ -21,6 +22,10 @@ for line in config_rutas:
         path_resultados = line.split()[0]
 
     tmp_line = line.split()[0]
+
+if not os.path.exists(path_resultados):
+    print "el directorio output: " + path_resultados + " no existe, creando..."
+    os.mkdir(path_resultados)
 
 #  - - - - - - CARGAR DATOS AL MODELO  - - - - - - ##
 
