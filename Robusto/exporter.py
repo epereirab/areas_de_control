@@ -64,7 +64,7 @@ def exportar_gen(model, path):
             tmprow.append(model.gen_pmin[g])
             tmprow.append(model.gen_pmax[g])
             tmprow.append(model.gen_pmax[g] * model.gen_factorcap[g, s])
-            tmprow.append(model.GEN_UC[g, s].value)
+            tmprow.append(0 if str(model.GEN_UC[g, s].value) == 'None' else model.GEN_UC[g, s].value)
             tmprow.append(model.GEN_PG[g, s].value)
             tmprow.append(model.GEN_RESUP[g, s].value)
             tmprow.append(model.GEN_RESDN[g, s].value)
