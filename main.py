@@ -5,6 +5,7 @@ from ReferenceModel import _model as model
 import csv
 import cStringIO
 import sys
+import exporter
 
 ####  - - - - - - LEER RUTAS DE DATOS Y RESULTADOS  - - - - - - #######
 
@@ -29,6 +30,11 @@ data.load(filename=path_datos+'data_gen.csv',
           param=(model.gen_barra, model.gen_pmax, model.gen_pmin, model.gen_cvar, model.gen_falla,
                  model.gen_rupmax, model.gen_rdnmax, model.gen_cfijo, model.gen_factorcap, model.gen_tipo),
           index=model.GENERADORES)
+
+data.load(filename=path_datos+'data_despachos.csv',
+          param=(model.UC, model.PG_0, model.RES_UP, model.RES_DN),
+          index=model.GENERADORES)
+
 
 data.load(filename=path_datos+'data_lin.csv',
           param=(model.linea_fmax, model.linea_barA, model.linea_barB, model.linea_available, model.linea_x,
@@ -74,111 +80,24 @@ if instance.config_value['debugging']:
 print ('\n------M O D E L O :  "%s"  T E R M I N A D O------\n' % instance.config_value['scuc'])
 # ------R E S U L T A D O S------------------------------------------------------------------------------
 print ('------E S C R I B I E N D O --- R E S U L T A D O S------\n')
+
+# Resultados para GENERADORES ---------------------------------------------------
+exporter.exportar_gen(instance, path_resultados)
+# Resultados para LINEAS --------------------------------------------------------
+exporter.exportar_lin(instance, path_resultados)
+# Resultados para BARRAS (ENS)---------------------------------------------------
+exporter.exportar_bar(instance, path_resultados)
+# Resultados del sistema --------------------------------------------------------
+exporter.exportar_system(instance, path_resultados)
+# Resultados de zonas -----------------------------------------------------------
+exporter.exportar_zones(instance, path_resultados)
+
+'''
 gen = instance.GENERADORES
 scen = instance.CONTINGENCIAS
 lin = instance.LINEAS
 bar = instance.BARRAS
 
-# Resultados para GENERADORES---------------------------------------------------------
-ofile = open(path_resultados + 'resultados_generadores.csv', "wb")
-writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
-
-ofile2 = open(path_resultados + 'resultados_generadores_delta.csv', "wb")
-writer2 = csv.writer(ofile2, delimiter=',', quoting=csv.QUOTE_NONE)
-
-tmprow = []
-tmprow2 = []
-# header
-header = ['Generador', 'barra', 'zona', 'tipo', 'Cvar', 'Pmax', 'Pmax_eff', 'Pmin', 'UC', 'PG_0', 'RES_UP', 'RES_DN']
-for z in instance.ZONAS:
-    for s in scen:
-        if z == instance.zona[instance.gen_barra[s]]:
-            if not instance.GEN_PG[s] == 0:
-                header.append(str(z) + '-' + str(s))
-writer.writerow(header)
-writer2.writerow(header)
-
-for g in gen:
-    tmprow.append(g)
-    tmprow.append(instance.gen_barra[g])
-    tmprow.append(instance.zona[instance.gen_barra[g]])
-    tmprow.append(instance.gen_tipo[g])
-    tmprow.append(instance.gen_cvar[g])
-    tmprow.append(instance.gen_pmax[g])
-    tmprow.append(instance.gen_pmax[g] * instance.gen_factorcap[g])
-    tmprow.append(instance.gen_pmin[g])
-    tmprow.append(instance.GEN_UC[g].value)
-    tmprow.append(instance.GEN_PG[g].value)
-    tmprow.append(instance.GEN_RESUP[g].value)
-    tmprow.append(instance.GEN_RESDN[g].value)
-    tmprow2 = list(tmprow)
-
-    for z in instance.ZONAS:
-        for s in scen:
-            if z == instance.zona[instance.gen_barra[s]]:
-                if not instance.GEN_PG[s] == 0:
-                    tmprow.append(instance.GEN_PG_S[g, s].value)
-                    if s == g:
-                        tmprow2.append('-')
-                    else:
-                        tmprow2.append(instance.GEN_PG_S[g, s].value-instance.GEN_PG[g].value)
-
-    writer.writerow(tmprow)
-    writer2.writerow(tmprow2)
-    tmprow = []
-    tmprow2 = []
-ofile.close()
-ofile2.close()
-
-# Resultados para LINEAS---------------------------------------------------------
-ofile = open(path_resultados + 'resultados_lineas.csv', "wb")
-writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
-
-tmprow = []
-# header
-header = ['Linea', 'Flujo_MAX', 'Flujo_0']
-for z in instance.ZONAS:
-    for s in scen:
-        if z == instance.zona[instance.gen_barra[s]]:
-            if not instance.GEN_PG[s] == 0:
-                header.append(str(z) + '-' + str(s))
-writer.writerow(header)
-
-for l in lin:
-    tmprow.append(l)
-    tmprow.append(instance.linea_fmax[l])
-    tmprow.append(instance.LIN_FLUJO[l].value)
-    for z in instance.ZONAS:
-        for s in scen:
-            if z == instance.zona[instance.gen_barra[s]]:
-                if not instance.GEN_PG[s] == 0:
-                    tmprow.append(instance.LIN_FLUJO_S[l, s].value)
-    writer.writerow(tmprow)
-    tmprow = []
-
-ofile.close()
-
-# Resultados para BARRAS (ENS)---------------------------------------------------------
-ofile = open(path_resultados + 'resultados_barras.csv', "wb")
-writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
-
-tmprow = []
-# header
-header = ['Linea', 'ENS_0']
-for s in scen:
-    header.append('ENS_' + str(s))
-writer.writerow(header)
-
-for b in bar:
-    tmprow.append(b)
-    tmprow.append(instance.ENS[b].value)
-
-    for s in scen:
-        tmprow.append(instance.ENS_S[b, s].value)
-    writer.writerow(tmprow)
-    tmprow = []
-
-ofile.close()
 # Costo total del sistema
 
 
@@ -204,64 +123,11 @@ def costo_escenario(sc):
 
 # Resultados del Sistema (ENS)---------------------------------------------------------
 
-ofile = open(path_resultados + 'resultados_system.csv', "wb")
-writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 
-tmprow = []
-# header
-header = ['Valor', '0']
-for s in scen:
-    header.append(str(s))
-writer.writerow(header)
-
-tmprow.append('CostoTotal')
-tmprow.append(costo_base())
-for s in scen:
-    tmprow.append(costo_escenario(s))
-writer.writerow(tmprow)
-tmprow = []
-
-tmprow.append('CostoOperacion')
-tmprow.append(costo_op())
-for s in scen:
-    tmprow.append(costo_op_escenario(s))
-writer.writerow(tmprow)
-tmprow = []
-
-tmprow.append('CostoENS')
-tmprow.append(costo_ENS())
-for s in scen:
-    tmprow.append(costo_ENS_escenario(s))
-writer.writerow(tmprow)
-tmprow = []
-
-ofile.close()
 
 # RESULTADOS POR AREA ---------------------------------------------------------------------------------------
 
-ofile = open(path_resultados + 'resultados_zonas.csv', "wb")
-writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
-tmprow = []
-# header
-header = ['Zona', 'TotalRUP', 'TotalRDN']
-for z in instance.ZONAS:
-    header.append('RES-TO-ZONE->' + z)
-writer.writerow(header)
-for z in instance.ZONAS:
-    tmprow.append(str(z))
-    tmprow.append(sum(instance.GEN_RESUP[g].value for g in gen if instance.zona[instance.gen_barra[g]] == z))
-    tmprow.append(sum(instance.GEN_RESDN[g].value for g in gen if instance.zona[instance.gen_barra[g]] == z))
-    if instance.config_value['scuc'] == 'zonal_sharing':
-        for z2 in instance.ZONAS:
-            if z == z2:
-                tmprow.append('-')
-            else:
-                tmprow.append(instance.SHARED_RESUP[z, z2].value)
-
-    writer.writerow(tmprow)
-    tmprow = []
-
-ofile.close()
 
 
 
+'''
