@@ -30,7 +30,7 @@ if not os.path.exists(path_resultados):
 #  - - - - - - CARGAR DATOS AL MODELO  - - - - - - ##
 
 print ("--- Leyendo data ---")
-print ("path input:" +path_datos)
+print ("path input:" + path_datos)
 
 data = DataPortal()
 
@@ -98,7 +98,9 @@ if instance.config_value['debugging']:
     # sys.stdout.write(instance.pprint())
     output.close()
 
-print ('\n--------M O D E L O :  "%s"  T E R M I N A D O --------\n' % instance.config_value['scuc'])
+print ('\n--------M O D E L O :  "%s"  T E R M I N A D O --------' % instance.config_value['scuc'])
+print ("path input:" + path_datos + '\n')
+
 # ------R E S U L T A D O S------------------------------------------------------------------------------
 print ('------E S C R I B I E N D O --- R E S U L T A D O S------\n')
 
