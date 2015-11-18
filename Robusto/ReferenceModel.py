@@ -155,14 +155,16 @@ _model.GEN_RES_UC = Var(_model.GENERADORES, _model.ESCENARIOS,
 
 # Generacion del generador g, escenario base
 def bounds_gen_pg(model, g, s):
-    return 0, model.gen_pmax[g] * model.gen_factorcap[g, s]
+    ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s],2)
+    return 0, ub
 _model.GEN_PG = Var(_model.GENERADORES, _model.ESCENARIOS,
                     within=NonNegativeReals, bounds=bounds_gen_pg)
 
 
 # Generacion del generador g, Escenarios de falla
 def bounds_gen_pg_scenario(model, g, s, sf):
-    return 0, model.gen_pmax[g] * model.gen_factorcap[g, s]
+    ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s],2)
+    return 0, ub
 _model.GEN_PG_S = Var(_model.GENERADORES, _model.ESCENARIOS, _model.CONTINGENCIAS,
                       within=NonNegativeReals, bounds=bounds_gen_pg_scenario)
 
@@ -275,13 +277,15 @@ _model.CT_nodal_balance_contingency = Constraint(_model.BARRAS, _model.ESCENARIO
 
 # CONSTRAINT 2 y 3: Pmin & Pmax - Pre-fault
 def p_min_generators_rule(model, g, s):
+    lb = round(model.gen_pmin[g] * model.gen_factorcap[g, s],2)
     return (model.GEN_PG[g, s] - model.GEN_RESDN[g, s] >=
-            model.GEN_UC[g, s] * model.gen_pmin[g] * model.gen_factorcap[g, s])
+            model.GEN_UC[g, s] * lb)
 
 
 def p_max_generators_rule(model, g, s):
+    ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s],2)
     return (model.GEN_PG[g, s] + model.GEN_RESUP[g, s] <=
-            model.GEN_UC[g, s] * model.gen_pmax[g] * model.gen_factorcap[g, s])
+            model.GEN_UC[g, s] * ub)
 
 _model.CT_min_power = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=p_min_generators_rule)
 
@@ -443,7 +447,18 @@ _model.CT_min_reserve_gen_number = Constraint(_model.ZONAS, _model.ESCENARIOS, r
 # FORZANDO DESPACHOS
 
 def forced_pg_rule(model, g, s):
-    if model.config_value['scuc'] == 'forced_scuc':
+    if model.config_value['scuc'] == 'forced_scuc':# and round(model.gen_d_uc[g, s],0)>0:
+        ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s],2)*round(model.gen_d_uc[g, s],0)
+        lb = round(model.gen_pmin[g] * model.gen_factorcap[g, s],2)*round(model.gen_d_uc[g, s],0)
+        if model.gen_d_pg[g,s]>ub or model.gen_d_pg[g,s]<lb:
+            print "ERROR 1"
+            print "g_:" +str(g) + " S: "+ str(s)
+
+        if model.gen_d_resup[g, s]> ub-lb:
+            return Constraint.Skip
+            print "ERROR 2"
+            print "g_:" +str(g) + " S: "+ str(s)
+            print "ub= " + str(ub) +" lb: "+ str(lb) + " res " + str(model.gen_d_resup[g, s]) + " resta "+ str(ub-lb)
         return model.GEN_PG[g, s] == model.gen_d_pg[g, s]
     else:
         return Constraint.Skip
@@ -453,7 +468,7 @@ _model.CT_forced_pg = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=for
 
 def forced_uc_rule(model, g, s):
     if model.config_value['scuc'] == 'forced_scuc':
-        return model.GEN_UC[g, s] == model.gen_d_uc[g, s]
+        return model.GEN_UC[g, s] == round(model.gen_d_uc[g, s],0)
     else:
         return Constraint.Skip
 
