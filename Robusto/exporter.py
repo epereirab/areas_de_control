@@ -127,7 +127,7 @@ def exportar_bar(model, path):
     
     tmprow = []
     # header
-    header = ['Linea', 'Escenario', 'ENS_0']
+    header = ['Barra', 'Escenario', 'ENS_0']
     for sf in fallas:
         header.append(model.gen_barra[sf] + 'ENS_' + str(sf))
     writer.writerow(header)
