@@ -31,6 +31,8 @@ _model.ESCENARIOS = Set()
 _model.PARTICIONES = Set()
 # ZONAS
 _model.ZONAS = Set()
+# CORTES DE BENDERS
+_model.BENDERS = Set(within=PositiveIntegers, ordered=True)
 
 ###########################################################################
 # PARAMETERS
@@ -60,7 +62,7 @@ _model.linea_x = Param(_model.LINEAS)
 # BARRAS
 _model.demanda = Param(_model.BARRAS, _model.ESCENARIOS)
 
-# _model.vecinos = Param(_model.BARRAS)
+_model.vecinos = Param(_model.BARRAS)
 
 # PARTICIONES
 _model.barras_zona1 = Param(_model.PARTICIONES)
@@ -71,6 +73,11 @@ _model.barras_zona2 = Param(_model.PARTICIONES)
 # c_res = valor de penalizacion de reserva
 
 _model.config_value = Param(_model.CONFIG)
+
+# Parametros de cortes de benders
+_model.dual_req1 = Param(_model.BENDERS)
+_model.dual_req2 = Param(_model.BENDERS)
+
 
 #TODO Hacerlo para un numero N de zonas a usar
 ###########################################################################
@@ -168,6 +175,9 @@ _model.REQ_RES_Z2 = Var(_model.PARTICIONES,
 # COMMITMENT DE PARTICION
 _model.C_PART = Var(_model.PARTICIONES, within=Binary)
 
+# FUNCION OBJETIVO DEL ESCLAVO, EVALUACION DE SEGURIDAD
+_model.SLAVE_SECURITY = Var(within=NonNegativeReals)
+
 
 ###########################################################################
 # CONSTRAINTS
@@ -216,12 +226,12 @@ _model.CT_kirchhoff_2nd_law = Constraint(_model.LINEAS, _model.ESCENARIOS, rule=
 # CONSTRAINT 5: RESERVA POR ZONAS
 def zonal_reserve_up_rule_z1(model, s, p):
     return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g], p] == 1) >=
-            model.RES_REQ_Z1[p] - (1-model.C_PART[p])*100000)
+            model.REQ_RES_Z1[p] - (1-model.C_PART[p])*100000)
 
 
 def zonal_reserve_up_rule_z2(model, s, p):
     return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g], p] == 2) >=
-            model.RES_REQ_Z2[p] - (1-model.C_PART[p])*100000)
+            model.REQ_RES_Z2[p] - (1-model.C_PART[p])*100000)
 
 
 # def zonal_reserve_dn_rule_z1(model, s, p):
@@ -233,9 +243,9 @@ def zonal_reserve_up_rule_z2(model, s, p):
 #     return (sum(model.GEN_RESDN[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g], p] == 2) >=
 #             model.zonal_rdn[z])
 
-_model.CT_zonal_reserve_up_Z1 = Constraint(_model.ESCENARIOS, _model.PARTICIONES, rule=zonal_reserve_up_rule_z2)
 _model.CT_zonal_reserve_up_Z1 = Constraint(_model.ESCENARIOS, _model.PARTICIONES, rule=zonal_reserve_up_rule_z1)
-# _model.CT_zonal_reserve_dn_z2 = Constraint(_model.ESCENARIOS, _model.PARTICIONES, rule=zonal_reserve_dn_rule_z1)
+_model.CT_zonal_reserve_up_Z2 = Constraint(_model.ESCENARIOS, _model.PARTICIONES, rule=zonal_reserve_up_rule_z2)
+# _model.CT_zonal_reserve_dn_z = Constraint(_model.ESCENARIOS, _model.PARTICIONES, rule=zonal_reserve_dn_rule_z1)
 # _model.CT_zonal_reserve_dn_Z2 = Constraint(_model.ESCENARIOS, _model.PARTICIONES, rule=zonal_reserve_dn_rule_z2)
 
 
@@ -243,7 +253,7 @@ _model.CT_zonal_reserve_up_Z1 = Constraint(_model.ESCENARIOS, _model.PARTICIONES
 def partition_selection(model):
     return sum(model.C_PART[p] for p in model.PARTICIONES) == 1
 
-_model.CT_partition_selection = Constraint(_model.ZONAS, _model.ESCENARIOS, rule=partition_selection)
+_model.CT_partition_selection = Constraint(rule=partition_selection)
 
 
 # CONSTRAINT 7: CANTIDAD MINIMA DE GENERADORES APORTANDO RESERVA
@@ -254,11 +264,26 @@ def min_reserve_gen_number(model, z, s):
 _model.CT_min_reserve_gen_number = Constraint(_model.ZONAS, _model.ESCENARIOS, rule=min_reserve_gen_number)
 
 
+# CONSTRAINT 8: RESERVA MINIMA y MAXIMA
+def min_reserve_up(model, g, s):
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'zonal':
+        return model.GEN_RESUP[g, s] >= model.GEN_RES_UC[g, s] * model.config_value['rup_min']
+    else:
+        return Constraint.Skip
+
+
+def max_reserve_up(model, g, s):
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'zonal':
+        return model.GEN_RESUP[g, s] <= model.GEN_RES_UC[g, s] * model.gen_rupmax[g, s]
+    else:
+        return Constraint.Skip
+
+_model.CT_max_reserve_up = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=max_reserve_up)
+_model.CT_min_reserve_up = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=min_reserve_up)
+
 # CONSTRAINT 8: CORTES DE BENDERS de REQUERIMIENTOS DE RESERVA
-def benders_res_req(model):
-    return Constraint.Skip
-# TODO: completar!
-_model.CT_benders_reserve_requirement = Constraint()
+
+_model.CT_benders_reserve_requirement = ConstraintList()
 
 
 ###########################################################################
@@ -276,7 +301,7 @@ def system_cost_rule(model):
                              sum(model.config_value['c_res'] * model.GEN_RESUP[g, s]
                                  for g in model.GENERADORES for s in model.ESCENARIOS))
 
-    return costo_base + penalizacion_reservas
+    return costo_base + penalizacion_reservas + model.SLAVE_SECURITY
 
 
 _model.Objective_rule = Objective(rule=system_cost_rule, sense=minimize)
