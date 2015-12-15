@@ -127,9 +127,11 @@ for i in range(1, max_it):
             slave_instance.gen_d_pg[g, s] = master_instance.GEN_PG[g, s].value
             slave_instance.gen_d_resup[g, s] = master_instance.GEN_PG[g, s].value
     print 'Updating Slave'
-    slave_model.preprocess()
-    slave_instance.yapown()
     slave_instance.preprocess()
+    slave_model.preprocess()
+    for g in master_instance.GENERADORES:
+            for s in master_instance.ESCENARIOS:
+                print slave_instance.CT_forced_pg[g, s].upper
 # TODO No funciona el preprocess
 
     print ("--- Resolviendo la optimizacion del SLAVE---")
@@ -145,10 +147,9 @@ for i in range(1, max_it):
         break
     print ('ENS de la particion: %r [MW]' % (slave_instance.Objective_rule()/slave_instance.config_value['voll']))
 
-    # for s in slave_instance.ESCENARIOS:
-    #     for c in slave_instance.CONTINGENCIAS:
-    #         e = sum(slave_instance.ENS_S[b, s, c].value for b in slave_instance.BARRAS)
-    #         print ('ENS ' + s + ', ' + c + ': ' + str(e) + ' MWh')
+    for s in slave_instance.ESCENARIOS:
+        for g in slave_instance.GENERADORES:
+            print ('Pg ' + g + ', ' + s + ': ' + str(slave_instance.GEN_PG[g, s].value) + ' MW')
 
     if master_instance.config_value['debugging_slave']:
         print ("--- Exportando LP Slave---")
