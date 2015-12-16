@@ -122,14 +122,6 @@ _model.CONTINGENCIAS = Set(initialize=fault_scenarios_init)
 # VARIABLES
 ###########################################################################
 
-# Unit commitment generacion
-_model.GEN_UC = Var(_model.GENERADORES, _model.ESCENARIOS,
-                    within=Binary)
-
-# Unit commitment reserva
-_model.GEN_RES_UC = Var(_model.GENERADORES, _model.ESCENARIOS,
-                        within=Binary)
-
 
 # Generacion del generador g, escenario base
 def bounds_gen_pg(model, g, s):
@@ -154,20 +146,6 @@ _model.GEN_RESUP = Var(_model.GENERADORES, _model.ESCENARIOS,
                        within=NonNegativeReals, bounds=bounds_gen_resup)
 
 
-# Reserva DOWN del generador g, escenario base
-def bounds_gen_resdn(model, g, s):
-    return 0, model.gen_rdnmax[g, s]
-_model.GEN_RESDN = Var(_model.GENERADORES, _model.ESCENARIOS,
-                       within=NonNegativeReals, bounds=bounds_gen_resdn)
-
-
-# ENS base
-def bounds_ens(model, b, s):
-    return 0, model.demanda[b, s]
-_model.ENS = Var(_model.BARRAS, _model.ESCENARIOS,
-                 within=NonNegativeReals, bounds=bounds_ens)
-
-
 # ENS ESCENARIOS
 def bounds_ens_scenario(model, b, s, sf):
     return 0, model.demanda[b, s]
@@ -175,17 +153,7 @@ _model.ENS_S = Var(_model.BARRAS, _model.ESCENARIOS, _model.CONTINGENCIAS,
                    within=NonNegativeReals, bounds=bounds_ens_scenario)
 
 
-# FLUJO MAXIMO LINEAS
-def bounds_fmax(model, l, s):
-    if model.linea_available[l]:
-        return -model.linea_fmax[l], model.linea_fmax[l]
-    else:
-        return 0.0, 0.0
-_model.LIN_FLUJO = Var(_model.LINEAS, _model.ESCENARIOS,
-                       bounds=bounds_fmax)
-
-
-# FLUJO MAXIMO LINEAS SCENARIO
+# FLUJO MAXIMO LINEAS CONTINGENCIAS
 def bounds_fmax_scenario(model, l, s, sf):
     if model.linea_available[l]:
         return -model.linea_fmax[l], model.linea_fmax[l]
@@ -195,17 +163,7 @@ _model.LIN_FLUJO_S = Var(_model.LINEAS, _model.ESCENARIOS, _model.CONTINGENCIAS,
                          bounds=bounds_fmax_scenario)
 
 
-# ANGULO POR BARRAS
-def bounds_theta(model, b, s):
-    if b == model.config_value['default_bar']:
-        return 0.0, 0.0
-    return -math.pi, math.pi
-
-_model.THETA = Var(_model.BARRAS, _model.ESCENARIOS,
-                   bounds=bounds_theta)
-
-
-# ANGULO POR BARRAS SCENARIO
+# ANGULO POR BARRAS CONTINGENCIAS
 def bounds_theta_scenario(model, b, s, sf):
     if b == model.config_value['default_bar']:
         return 0.0, 0.0
@@ -218,19 +176,6 @@ _model.THETA_S = Var(_model.BARRAS, _model.ESCENARIOS, _model.CONTINGENCIAS,
 ###########################################################################
 # CONSTRAINTS
 ###########################################################################
-
-
-# # CONSTRAINT 1: Balance nodal por barra - pre-fault
-# def nodal_balance_rule(model, b, s):
-#
-#     lside = (sum(model.GEN_PG[g, s] for g in model.GENERADORES if model.gen_barra[g] == b) +
-#              sum(model.LIN_FLUJO[l, s] for l in model.LINEAS if model.linea_barB[l] == b and model.linea_available[l]))
-#     rside = (model.demanda[b, s] - model.ENS[b, s] +
-#              sum(model.LIN_FLUJO[l, s] for l in model.LINEAS if model.linea_barA[l] == b and model.linea_available[l]))
-#
-#     return lside == rside
-#
-# _model.CT_nodal_balance = Constraint(_model.BARRAS, _model.ESCENARIOS, rule=nodal_balance_rule)
 
 
 # CONSTRAINT 1: Balance nodal por barra - post-fault
@@ -249,34 +194,17 @@ _model.CT_nodal_balance_contingency = Constraint(_model.BARRAS, _model.ESCENARIO
                                                  rule=nodal_balance_contingency_rule)
 
 
-# # CONSTRAINT 2 y 3: Pmin & Pmax - Pre-fault
-# def p_min_generators_rule(model, g, s):
-#     lb = round(model.gen_pmin[g] * model.gen_factorcap[g, s],2)
-#     return (model.GEN_PG[g, s] - model.GEN_RESDN[g, s] >=
-#             model.GEN_UC[g, s] * lb)
-#
-#
-# def p_max_generators_rule(model, g, s):
-#     ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s],2)
-#     return (model.GEN_PG[g, s] + model.GEN_RESUP[g, s] <=
-#             model.GEN_UC[g, s] * ub)
-#
-# _model.CT_min_power = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=p_min_generators_rule)
-#
-# _model.CT_max_power = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=p_max_generators_rule)
-
-
 # CONSTRAINT 2 y 3: Pmin & Pmax - Post-fault
 def p_min_generators_contingency_rule(model, g, s, sf):
     if g == sf:
         return model.GEN_PG_S[g, s, sf] == 0
     if model.config_value['scuc'] == 'gx_vecinos':
         if g in model.VECINOS_GX[sf]:
-            return model.GEN_PG_S[g, s, sf] >= model.GEN_PG[g, s] - model.GEN_RESDN[g, s]
+            return model.GEN_PG_S[g, s, sf] >= model.GEN_PG[g, s]
         else:
             return model.GEN_PG_S[g, s, sf] == model.GEN_PG[g, s]
     else:
-        return model.GEN_PG_S[g, s, sf] >= model.GEN_PG[g, s] - model.GEN_RESDN[g, s]
+        return model.GEN_PG_S[g, s, sf] >= model.GEN_PG[g, s]
 
 
 def p_max_generators_contingency_rule(model, g, s, sf):
@@ -295,15 +223,6 @@ _model.CT_max_power_contingency = Constraint(_model.GENERADORES, _model.ESCENARI
                                              rule=p_max_generators_contingency_rule)
 
 
-# # CONSTRAINT 4: DC Flow - pre-fault
-# def kirchhoff_rule(model, l, s):
-#     rside = model.LIN_FLUJO[l, s]
-#     lside = 100 * (model.THETA[model.linea_barB[l], s] - model.THETA[model.linea_barA[l], s]) / model.linea_x[l]
-#     return rside == lside
-#
-# _model.CT_kirchhoff_2nd_law = Constraint(_model.LINEAS, _model.ESCENARIOS, rule=kirchhoff_rule)
-
-
 # CONSTRAINT 4: DC Flow - post-fault
 def kirchhoff_contingency_rule(model, l, s, sf):
     if l == sf:
@@ -317,55 +236,12 @@ _model.CT_kirchhoff_2nd_law_contingency = Constraint(_model.LINEAS, _model.ESCEN
                                                      rule=kirchhoff_contingency_rule)
 
 
-# CONSTRAINT 5: RESERVA POR ZONAS
-# def zonal_reserve_up_rule(model, z, s):
-#     if model.config_value['scuc'] == 'zonal':
-#         return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
-#                 model.zonal_rup[z])
-
-
-# def zonal_reserve_dn_rule(model, z, s):
-#     if model.config_value['scuc'] == 'zonal':
-#         return (sum(model.GEN_RESDN[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
-#                 model.zonal_rdn[z])
-#     if model.config_value['scuc'] == 'zonal_sharing':
-#         return (sum(model.GEN_RESDN[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) +
-#                 sum(model.SHARED_RESDN[z2, z] for z2 in model.ZONAS if not z == z2) >=
-#                 model.zonal_rdn[z])
-#     else:
-#         return Constraint.Skip
-
-# _model.CT_zonal_reserve_up = Constraint(_model.ZONAS, _model.ESCENARIOS, rule=zonal_reserve_up_rule)
-# _model.CT_zonal_reserve_dn = Constraint(_model.ZONAS, _model.ESCENARIOS, rule=zonal_reserve_dn_rule)
-
-
-
-# FORZANDO DESPACHOS
+# FORCING DISPATCH
 
 def forced_pg_rule(model, g, s):
-    # if model.config_value['scuc'] == 'forced_scuc':# and round(model.gen_d_uc[g, s],0)>0:
-    #     ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s], 2)*round(model.gen_d_uc[g, s], 0)
-    #     lb = round(model.gen_pmin[g] * model.gen_factorcap[g, s], 2)*round(model.gen_d_uc[g, s], 0)
-    #     if model.gen_d_pg[g, s] > ub or model.gen_d_pg[g, s] < lb:
-    #         print "ERROR 1"
-    #         print "g_:" + str(g) + " S: " + str(s)
-    #
-    #     if model.gen_d_resup[g, s] > ub-lb:
-    #         return Constraint.Skip
-    #         print "ERROR 2"
-    #         print "g_:" + str(g) + " S: " + str(s)
-    #         print "ub= " + str(ub) + " lb: " + str(lb) + " res " + str(model.gen_d_resup[g, s]) + " resta " + str(ub-lb)
     return model.GEN_PG[g, s] == round(model.gen_d_pg[g, s], 2)
-    # else:
-    #    return Constraint.Skip
 
 _model.CT_forced_pg = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_pg_rule)
-
-
-def forced_uc_rule(model, g, s):
-    return model.GEN_UC[g, s] == round(model.gen_d_uc[g, s], 0)
-
-_model.CT_forced_uc = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_uc_rule)
 
 
 def forced_resup_rule(model, g, s):
