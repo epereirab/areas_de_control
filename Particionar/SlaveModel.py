@@ -49,11 +49,9 @@ _model.gen_tipo = Param(_model.GENERADORES)
 
 # Parametros que provienen del master
 
-_model.gen_d_uc = Param(_model.GENERADORES, _model.ESCENARIOS, mutable=True)
-_model.gen_d_pg = Param(_model.GENERADORES, _model.ESCENARIOS, mutable=True)
-_model.gen_d_resup = Param(_model.GENERADORES, _model.ESCENARIOS, mutable=True)
-_model.req_res1 = Param()
-_model.req_res2 = Param()
+# _model.gen_d_uc = Param(_model.GENERADORES, _model.ESCENARIOS, mutable=True, default=0)
+_model.gen_d_pg = Param(_model.GENERADORES, _model.ESCENARIOS, mutable=True, default=0)
+_model.gen_d_resup = Param(_model.GENERADORES, _model.ESCENARIOS, mutable=True, default=0)
 # _model.gen_d_resdn = Param(_model.GENERADORES, _model.ESCENARIOS)
 
 # LINEAS
@@ -77,10 +75,27 @@ _model.zonal_rdn = Param(_model.ZONAS)
 
 _model.config_value = Param(_model.CONFIG)
 
+_model.Req_Z1 = Param(mutable=True, default=0)
+_model.Req_Z2 = Param(mutable=True, default=0)
+
+
+# Zona (barra, particion)
+def zonasporparticion(model, b):
+    for bt in model.config_value['barras_zona1']:
+        if bt == b:
+            return 1
+    for bt in model.config_value['barras_zona2']:
+        if bt == b:
+            return 2
+    return 0
+
+_model.zona = Param(_model.BARRAS,
+                    initialize=zonasporparticion)
 
 ###########################################################################
 # SETS FROM PARAMETERS
 ###########################################################################
+
 def vecinos_generadores_init(model, g):
     vecinos = []
     for v in model.vecinos[model.gen_barra[g]]:
@@ -125,7 +140,7 @@ _model.CONTINGENCIAS = Set(initialize=fault_scenarios_init)
 
 # Generacion del generador g, escenario base
 def bounds_gen_pg(model, g, s):
-    ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s], 2)
+    ub = model.gen_pmax[g] * model.gen_factorcap[g, s]
     return 0, ub
 _model.GEN_PG = Var(_model.GENERADORES, _model.ESCENARIOS,
                     within=NonNegativeReals, bounds=bounds_gen_pg)
@@ -133,7 +148,7 @@ _model.GEN_PG = Var(_model.GENERADORES, _model.ESCENARIOS,
 
 # Generacion del generador g, Escenarios de falla
 def bounds_gen_pg_scenario(model, g, s, sf):
-    ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s], 2)
+    ub = model.gen_pmax[g] * model.gen_factorcap[g, s]
     return 0, ub
 _model.GEN_PG_S = Var(_model.GENERADORES, _model.ESCENARIOS, _model.CONTINGENCIAS,
                       within=NonNegativeReals, bounds=bounds_gen_pg_scenario)
@@ -172,6 +187,9 @@ def bounds_theta_scenario(model, b, s, sf):
 _model.THETA_S = Var(_model.BARRAS, _model.ESCENARIOS, _model.CONTINGENCIAS,
                      bounds=bounds_theta_scenario)
 
+# REQUERIMIENTOS DE RESERVA
+_model.REQ_RES_Z1 = Var(within=NonNegativeReals)
+_model.REQ_RES_Z2 = Var(within=NonNegativeReals)
 
 ###########################################################################
 # CONSTRAINTS
@@ -236,19 +254,43 @@ _model.CT_kirchhoff_2nd_law_contingency = Constraint(_model.LINEAS, _model.ESCEN
                                                      rule=kirchhoff_contingency_rule)
 
 
+# CONSTRAINT 5: RESERVAS POR ZONAS
+def zonal_reserve_up_rule_z1(model, s):
+    return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == 1) >=
+            model.REQ_RES_Z1)
+
+
+def zonal_reserve_up_rule_z2(model, s):
+    return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == 2) >=
+            model.REQ_RES_Z2)
+
+_model.CT_zonal_reserve_up_Z1 = Constraint(_model.ESCENARIOS, rule=zonal_reserve_up_rule_z1)
+_model.CT_zonal_reserve_up_Z2 = Constraint(_model.ESCENARIOS, rule=zonal_reserve_up_rule_z2)
+
+
 # FORCING DISPATCH
 
 def forced_pg_rule(model, g, s):
-    return model.GEN_PG[g, s] == round(model.gen_d_pg[g, s], 2)
+    return model.GEN_PG[g, s] == model.gen_d_pg[g, s]
 
 _model.CT_forced_pg = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_pg_rule)
 
 
 def forced_resup_rule(model, g, s):
-    return model.GEN_RESUP[g, s] == round(model.gen_d_resup[g, s], 2)
+    return model.GEN_RESUP[g, s] == model.gen_d_resup[g, s]
 
 _model.CT_forced_resup = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_resup_rule)
 
+
+def forced_req_z1_rule(model):
+    return model.REQ_RES_Z1 == model.Req_Z1
+
+
+def forced_req_z2_rule(model):
+    return model.REQ_RES_Z2 == model.Req_Z2
+
+_model.CT_forced_req_z1 = Constraint(rule=forced_req_z1_rule)
+_model.CT_forced_req_z2 = Constraint(rule=forced_req_z2_rule)
 
 ###########################################################################
 # FUNCION OBJETIVO
@@ -257,6 +299,7 @@ _model.CT_forced_resup = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=
 def system_cost_rule(model):
     security_assesment = sum(model.ENS_S[b, s, sf] * model.config_value['voll']
                              for b in model.BARRAS for s in model.ESCENARIOS for sf in model.CONTINGENCIAS)
+
 
     return security_assesment
 
