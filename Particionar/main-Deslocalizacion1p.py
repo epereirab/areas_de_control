@@ -1,7 +1,7 @@
 from coopr.pyomo import *
 from coopr.opt import SolverFactory
 
-from Master_DEconRRyPart import _model as master_model
+from Master_DEconRR import _model as master_model
 from SlaveModel import _model as slave_model
 import cStringIO
 import sys
@@ -60,15 +60,15 @@ data_master.load(filename=path_datos+'data_bar_dyn.csv',
                  param=master_model.demanda,
                  index=(master_model.BARRAS, master_model.ESCENARIOS))
 
-data_master.load(filename=path_datos+'data_config.csv',
+data_master.load(filename=path_datos+'data_config_CENTRO-SUR.csv',
                  param=master_model.config_value,
                  index=master_model.CONFIG)
 
 data_master.load(filename=path_datos+'data_scenarios.csv',
                  set=master_model.ESCENARIOS)
-data_master.load(filename=path_datos+'data_particiones.csv',
-                 param=(master_model.barras_zona1, master_model.barras_zona2),
-                 index=master_model.PARTICIONES)
+#data_master.load(filename=path_datos+'data_particiones.csv',
+#                 param=(master_model.barras_zona1, master_model.barras_zona2),
+#                 index=master_model.PARTICIONES)
 
 data_slave = data_master
 
@@ -78,7 +78,9 @@ data_slave = data_master
 
 print ("--- Creando Master ---")
 master_instance = master_model.create(data_master)
-print ("--- Creando Slave")
+master_instance.CT_fix_req_res_z1.deactivate()
+master_instance.CT_fix_req_res_z2.deactivate()
+print ("--- Creando Slave---")
 slave_instance = slave_model.create(data_slave)
 
 opt = SolverFactory("cplex")
@@ -86,24 +88,22 @@ opt = SolverFactory("cplex")
 # Datos para la iteracion
 
 max_it = 20
-GAP_ENS = 1
+GAP_ENS = 20
 
 ngen = {}
-for p in master_instance.PARTICIONES:
-    ngen[p, 1] = sum(1 for g in master_instance.GENERADORES
-                     if master_instance.zona[master_instance.gen_barra[g], p] == 1
-                     if master_instance.gen_tipo[g] in ['GNL', 'Embalse', 'Carbon', 'Diesel'])
-    ngen[p, 2] = sum(1 for g in master_instance.GENERADORES
-                     if master_instance.zona[master_instance.gen_barra[g], p] == 2
-                     if master_instance.gen_tipo[g] in ['GNL', 'Embalse', 'Carbon', 'Diesel'])
 
-print ngen
-planos = {}
+ngen[1] = sum(1 for g in master_instance.GENERADORES
+              if master_instance.zona[master_instance.gen_barra[g]] == 1
+              if master_instance.gen_tipo[g] in ['GNL', 'Embalse', 'Carbon', 'Diesel'])
+ngen[2] = sum(1 for g in master_instance.GENERADORES
+              if master_instance.zona[master_instance.gen_barra[g]] == 2
+              if master_instance.gen_tipo[g] in ['GNL', 'Embalse', 'Carbon', 'Diesel'])
 ENS = {}
 fobj = {}
 reqs = {}
-particiones = {}
 
+print ngen
+planos = {}
 for i in range(1, max_it+1):
 ####  - - - -   - - RESOLVIENDO LA OPTIMIZACION  MAESTRO- - - - - - #######
     print ('\n\nIteracion %i' % i)
@@ -112,18 +112,10 @@ for i in range(1, max_it+1):
     print ("Master Resuelto")
     # results_master.write()
     master_instance.load(results_master)
+    reqs[i] = (master_instance.REQ_RES_Z1.value, master_instance.REQ_RES_Z2.value)
+    print ('Requerimiento de reserva zona 1: %r' % reqs[i][0])
+    print ('Requerimiento de reserva zona 2: %r' % reqs[i][1])
 
-    for p in master_instance.PARTICIONES:
-
-        if round(master_instance.C_PART[p].value, 0):
-            parti = p
-            particiones[i] = p
-            reqs[i, p] = (master_instance.REQ_RES_Z1[p].value, master_instance.REQ_RES_Z2[p].value)
-
-            print ('Particion ' + parti + ' seleccionada')
-            print ('Requerimiento de reserva zona 1: %r' % reqs[i, p][0])
-            print ('Requerimiento de reserva zona 2: %r' % reqs[i, p][1])
-            break
 
     # Update of slave dispatch parameters
     for g in master_instance.GENERADORES:
@@ -164,28 +156,30 @@ for i in range(1, max_it+1):
     if ENS[i] <= GAP_ENS:
         break
 
-    # for s in slave_instance.ESCENARIOS:
-    #     for g in slave_instance.GENERADORES:
-    #         print ('Pg ' + g + ', ' + s + ': ' + str(slave_instance.GEN_PG[g, s].value) + ' MW')
-    # slave_instance.CT_forced_pg.pprint()
-
     duales = slave_instance.dual
     cut = (slave_instance.Objective_rule() +
            sum(duales.getValue(slave_instance.CT_forced_resup[g, s])
                for g in slave_instance.GENERADORES
                for s in slave_instance.ESCENARIOS
-               if master_instance.zona[master_instance.gen_barra[g], parti] == 1) / ngen[parti, 1] *
-           (master_instance.REQ_RES_Z1[parti]-master_instance.REQ_RES_Z1[parti].value) +
+               if master_instance.zona[master_instance.gen_barra[g]] == 1) / ngen[1] *
+           (master_instance.REQ_RES_Z1-master_instance.REQ_RES_Z1.value) +
            sum(duales.getValue(slave_instance.CT_forced_resup[g, s])
                for g in slave_instance.GENERADORES
                for s in slave_instance.ESCENARIOS
-               if master_instance.zona[master_instance.gen_barra[g], parti] == 2) / ngen[parti, 2] *
-           (master_instance.REQ_RES_Z2[parti]-master_instance.REQ_RES_Z2[parti].value)
+               if master_instance.zona[master_instance.gen_barra[g]] == 2) / ngen[2] *
+           (master_instance.REQ_RES_Z2-master_instance.REQ_RES_Z2.value)
            )
     master_instance.CT_cortes.add(master_instance.SLAVE_SECURITY >= cut)
     master_instance.preprocess()
-    planos[i, parti] = (master_instance.SLAVE_SECURITY >= cut)
-    print planos[i, parti]
+    planos[i] = (master_instance.SLAVE_SECURITY >= cut)
+    print 'corte:', planos[i]
+
+    # for s in slave_instance.ESCENARIOS:
+    #     for g in slave_instance.GENERADORES:
+    #         if slave_instance.gen_tipo[g] in ['Serie', 'Pasada', 'Solar', 'Eolico']:
+    #             print ('Pg ' + g + ', ' + s + ': ' + str(duales.getValue(slave_instance.CT_forced_resup[g,s])) + ' MW')
+
+
 
 # TODO Agregar corte de benders
 print '\nCORTES'
@@ -200,10 +194,6 @@ for i in ENS:
 print '\n Requerimientos (Zona1, Zona2) [MW]'
 for i in reqs:
     print str(i) + ': ' + str(reqs[i])
-print '\n Particion seleccionada en iteracion i'
-for i in particiones:
-    print str(i) + ': ' + str(particiones[i])
-
 
 print ('\n--------M O D E L O :  "%s"  T E R M I N A D O --------' % master_instance.config_value['scuc'])
 print ("path input:" + path_datos + '\n')

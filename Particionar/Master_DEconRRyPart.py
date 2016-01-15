@@ -226,12 +226,12 @@ _model.CT_kirchhoff_2nd_law = Constraint(_model.LINEAS, _model.ESCENARIOS, rule=
 # CONSTRAINT 5: RESERVA POR ZONAS
 def zonal_reserve_up_rule_z1(model, s, p):
     return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g], p] == 1) >=
-            model.REQ_RES_Z1[p] - (1-model.C_PART[p])*1000000)
+            model.REQ_RES_Z1[p] - (1-model.C_PART[p])*10000000)
 
 
 def zonal_reserve_up_rule_z2(model, s, p):
     return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g], p] == 2) >=
-            model.REQ_RES_Z2[p] - (1-model.C_PART[p])*1000000)
+            model.REQ_RES_Z2[p] - (1-model.C_PART[p])*10000000)
 
 
 # def zonal_reserve_dn_rule_z1(model, s, p):
@@ -283,15 +283,15 @@ _model.CT_min_reserve_up = Constraint(_model.GENERADORES, _model.ESCENARIOS, rul
 
 # CONSTRAINT 8: CORTES DE BENDERS de REQUERIMIENTOS DE RESERVA
 
-_model.CT_benders_reserve_requirement = ConstraintList()
+_model.CT_cortes = ConstraintList()
 
 def f1(model, p):
     return model.REQ_RES_Z1[p]>=100
 def f2(model, p):
-    return model.REQ_RES_Z1[p]>=100
+    return model.REQ_RES_Z2[p]>=100
 
-_model.CT_f1 = Constraint(_model.PARTICIONES, rule=f1)
-_model.CT_f2 = Constraint(_model.PARTICIONES, rule=f2)
+#_model.CT_f1 = Constraint(_model.PARTICIONES, rule=f1)
+#_model.CT_f2 = Constraint(_model.PARTICIONES, rule=f2)
 
 
 ###########################################################################
@@ -308,8 +308,9 @@ def system_cost_rule(model):
                                  for g in model.GENERADORES for s in model.ESCENARIOS) +
                              sum(model.config_value['c_res'] * model.GEN_RESUP[g, s]
                                  for g in model.GENERADORES for s in model.ESCENARIOS))
+    confiabilidad = model.SLAVE_SECURITY * model.config_value['voll']
 
-    return costo_base + penalizacion_reservas + model.SLAVE_SECURITY
+    return costo_base + penalizacion_reservas + confiabilidad
 
 
 _model.Objective_rule = Objective(rule=system_cost_rule, sense=minimize)
