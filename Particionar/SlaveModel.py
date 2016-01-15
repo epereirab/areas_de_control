@@ -297,7 +297,7 @@ _model.CT_forced_req_z2 = Constraint(rule=forced_req_z2_rule)
 ###########################################################################
 
 def system_cost_rule(model):
-    security_assesment = sum(model.ENS_S[b, s, sf] * model.config_value['voll']
+    security_assesment = sum(model.ENS_S[b, s, sf]
                              for b in model.BARRAS for s in model.ESCENARIOS for sf in model.CONTINGENCIAS)
 
 

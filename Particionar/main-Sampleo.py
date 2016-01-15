@@ -34,7 +34,7 @@ print ("--- Leyendo data ---")
 
 data_master = DataPortal()
 
-path_datos = 'Data/Un Escenario/'
+path_datos = 'Data/completo/'
 
 print ("path input:" + path_datos)
 
@@ -65,7 +65,7 @@ data_master.load(filename=path_datos+'data_scenarios.csv',
                  set=master_model.ESCENARIOS)
 data_master2 = data_master
 
-data_master.load(filename=path_datos+'data_config_SIC-SING.csv',
+data_master.load(filename=path_datos+'data_config_CENTRO-SUR.csv',
                  param=master_model.config_value,
                  index=master_model.CONFIG)
 
@@ -90,14 +90,17 @@ opt = SolverFactory("cplex")
 GAP_ENS = 1
 minR = 100
 i = 1
-values1 = {}
-for req1 in range(100, 200, 50):
-    for req2 in range(100, 200, 50):
+ENS = {}
+fobj = {}
+reqs = {}
+
+for req1 in range(300, 600, 50):
+    for req2 in range(300, 600, 50):
 ####  - - - -   - - RESOLVIENDO LA OPTIMIZACION  MAESTRO- - - - - - #######
         if req1+req2 >= minR:
-
+            reqs[i] = (req1, req2)
             print ('\n\nIteracion %i' % i)
-            i = i+1
+
             print ("--- Resolviendo la optimizacion del MASTER---")
             master_instance1.Req_Z1 = req1
             master_instance1.Req_Z2 = req2
@@ -121,98 +124,37 @@ for req1 in range(100, 200, 50):
 
             print 'Updating Slave'
 
-            slave_instance.preprocess()
+            #slave_instance.preprocess()
 
             print ("--- Resolviendo la optimizacion del SLAVE---")
             results_slave = opt.solve(slave_instance, tee=False)  # tee=True shows the solver info
             # results.write()
             slave_instance.load(results_slave)
 
-            if slave_instance.Objective_rule()/slave_instance.config_value['voll'] <= GAP_ENS:
-                print ('Requerimiento de reserva zona 1: %r' % master_instance1.Req_Z1.value)
-                print ('Requerimiento de reserva zona 2: %r' % master_instance1.Req_Z2.value)
-                print ('ENS de la particion: %r [MW]' % (slave_instance.Objective_rule()/slave_instance.config_value['voll']))
-                print ('Costo Operacional del Sistema: %r [k$]' % (master_instance1.Objective_rule()/1000))
-                values1[req1, req2] = (master_instance1.Objective_rule()/1000)
+            ENS[i] = slave_instance.Objective_rule()
+            fobj[i] = master_instance1.Objective_rule()/1000
+            print ('Requerimiento de reserva zona 1: %r' % req1)
+            print ('Requerimiento de reserva zona 2: %r' % req2)
+            print ('ENS de la particion: %r [MW]' % ENS[i])
+            print ('Costo Operacional del Sistema: %r [k$]' % fobj[i])
+            i += 1
+            if ENS[i-1] <= GAP_ENS:
                 break
-            print ('Requerimiento de reserva zona 1: %r' % master_instance1.Req_Z1.value)
-            print ('Requerimiento de reserva zona 2: %r' % master_instance1.Req_Z2.value)
-            print ('ENS de la particion: %r [MW]' % (slave_instance.Objective_rule()/slave_instance.config_value['voll']))
 
-i = 1
-values2 = {}
-print '\n Comienzo de sampleo particion 2'
-for req1 in range(100, 200, 50):
-    for req2 in range(100, 200, 50):
-####  - - - -   - - RESOLVIENDO LA OPTIMIZACION  MAESTRO- - - - - - #######
-        if req1+req2 >= minR:
 
-            print ('\n\nIteracion %i' % i)
-            i = i+1
-            print ("--- Resolviendo la optimizacion del MASTER---")
-            master_instance2.Req_Z1 = req1
-            master_instance2.Req_Z2 = req2
-            master_instance2.preprocess()
-            results_master = opt.solve(master_instance2, tee=False)
-            print ("Master Resuelto")
-            # results_master.write()
-            master_instance2.load(results_master)
-
-            # Update of slave dispatch parameters
-            for g in master_instance2.GENERADORES:
-                for s in master_instance2.ESCENARIOS:
-                    # if master_instance.GEN_UC[g, s].value is None:
-                    #    slave_instance.gen_d_uc[g, s] = 0
-                    # else:
-                    #    slave_instance.gen_d_uc[g, s] = master_instance.GEN_UC[g, s].value
-                    slave_instance.gen_d_pg[g, s] = min(master_instance2.GEN_PG[g, s].value,
-                                                        slave_instance.gen_pmax[g] * slave_instance.gen_factorcap[g, s])
-                    slave_instance.gen_d_resup[g, s] = master_instance2.GEN_RESUP[g, s].value
-                # print slave_instance.gen_pmax[g]
-
-            print 'Updating Slave'
-
-            slave_instance.preprocess()
-
-            print ("--- Resolviendo la optimizacion del SLAVE---")
-            results_slave = opt.solve(slave_instance, tee=False)  # tee=True shows the solver info
-            # results.write()
-            slave_instance.load(results_slave)
-
-            if slave_instance.Objective_rule()/slave_instance.config_value['voll'] <= GAP_ENS:
-                print ('Requerimiento de reserva zona 1: %r' % master_instance2.Req_Z1.value)
-                print ('Requerimiento de reserva zona 2: %r' % master_instance2.Req_Z2.value)
-                print ('ENS de la particion: %r [MW]' % (slave_instance.Objective_rule()/slave_instance.config_value['voll']))
-                print ('Costo Operacional del Sistema: %r [k$]' % (master_instance2.Objective_rule()/1000))
-                values2[req1, req2] = (master_instance2.Objective_rule()/1000)
-                break
-            print ('Requerimiento de reserva zona 1: %r' % master_instance2.Req_Z1.value)
-            print ('Requerimiento de reserva zona 2: %r' % master_instance2.Req_Z2.value)
-            print ('ENS de la particion: %r [MW]' % (slave_instance.Objective_rule()/slave_instance.config_value['voll']))
-
-m1 = 100000000
-m2 = m1
+fopt = 100000000
 rr = []
-rr2 = []
-print 'Particion 1:\n (Req1, Req2) Fobj'
-for r in values1:
-    print r, values1[r]
-    if values1[r] < m1:
-        m1 = values1[r]
-        rr = r
-print 'Particion 2:\n (Req1, Req2) Fobj'
-for r in values2:
-    print r, values2[r]
-    if values2[r] < m2:
-        m2 = values2[r]
-        rr2 = r
+print 'Particion 1:\nit (Req1, Req2) ENS   Fobj'
+for i in reqs:
+    print i, ' ', reqs[i], ' ', ENS[i], fobj[i]
+    if ENS[i] == 0:
+        if fobj[i] < fopt:
+            rr = reqs[i]
+            fopt = fobj[i]
 
 
-print '\nOptimo Particion 1=', rr, m1
-print 'Optimo Particion 2=', rr2, m2
-# TODO Agregar corte de benders
 
-
+print '\nOptimo Particion 1=', rr, fopt
 
 print ('\n--------M O D E L O : T E R M I N A D O --------' )
 print ("path input:" + path_datos + '\n')
