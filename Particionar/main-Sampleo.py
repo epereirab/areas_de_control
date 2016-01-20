@@ -63,7 +63,6 @@ data_master.load(filename=path_datos+'data_bar_dyn.csv',
 
 data_master.load(filename=path_datos+'data_scenarios.csv',
                  set=master_model.ESCENARIOS)
-data_master2 = data_master
 
 data_master.load(filename=path_datos+'data_config_CENTRO-SUR.csv',
                  param=master_model.config_value,
@@ -74,11 +73,6 @@ data_slave = data_master
 
 print ("--- Creando Master ---")
 master_instance1 = master_model.create(data_master)
-
-data_master2.load(filename=path_datos+'data_config_CN-CENTRO.csv',
-                  param=master_model.config_value,
-                  index=master_model.CONFIG)
-master_instance2 = master_model.create(data_master2)
 
 print ("--- Creando Slave")
 slave_instance = slave_model.create(data_slave)
@@ -94,12 +88,13 @@ ENS = {}
 fobj = {}
 reqs = {}
 
-for req1 in range(300, 600, 50):
-    for req2 in range(300, 600, 50):
+for req1 in range(600, 850, 50):
+    for req2 in range(450, 451, 50):
 ####  - - - -   - - RESOLVIENDO LA OPTIMIZACION  MAESTRO- - - - - - #######
         if req1+req2 >= minR:
             reqs[i] = (req1, req2)
             print ('\n\nIteracion %i' % i)
+            print ('Req 1: %i, Req 2: %i' % (req1, req2))
 
             print ("--- Resolviendo la optimizacion del MASTER---")
             master_instance1.Req_Z1 = req1

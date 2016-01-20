@@ -34,7 +34,7 @@ print ("--- Leyendo data ---")
 
 data_master = DataPortal()
 
-path_datos = 'Data/Un Escenario/'
+path_datos = 'Data/Redux/'
 print ("path input:" + path_datos)
 
 data_master.load(filename=path_datos+'data_gen_static.csv',
@@ -133,8 +133,14 @@ for i in range(1, max_it+1):
                 min(master_instance.GEN_PG[g, s].value,
                     slave_instance[parti].gen_pmax[g] * slave_instance[parti].gen_factorcap[g, s])
             slave_instance[parti].gen_d_resup[g, s] = master_instance.GEN_RESUP[g, s].value
-            slave_instance[parti].Req_Z1 = master_instance.REQ_RES_Z1[parti].value
-            slave_instance[parti].Req_Z2 = master_instance.REQ_RES_Z2[parti].value
+            slave_instance[parti].Req_Z1 = \
+                sum(slave_instance[parti].gen_d_resup[g, s].value
+                    for g in slave_instance[parti].GENERADORES
+                    if slave_instance[parti].zona[slave_instance[parti].gen_barra[g]] == 2)
+            slave_instance[parti].Req_Z2 = \
+                sum(slave_instance[parti].gen_d_resup[g, s].value
+                    for g in slave_instance[parti].GENERADORES
+                    if slave_instance[parti].zona[slave_instance[parti].gen_barra[g]] == 2)
         # print slave_instance.gen_pmax[g]
     # slave_instance.preprocess()
     # slave_instance[parti].CT_zonal_reserve_up_Z1.pprint()
@@ -151,12 +157,22 @@ for i in range(1, max_it+1):
                    for g in slave_instance[parti].GENERADORES
                    if slave_instance[parti].zona[slave_instance[parti].gen_barra[g]] == 2))
         print ('Requerimiento', slave_instance[parti].Req_Z2.value)
-
+    duales_m = master_instance.dual
 
     print ("--- Resolviendo la optimizacion del SLAVE---")
     results_slave = opt.solve(slave_instance[parti], tee=False)  # tee=True shows the solver info
     # results.write()
     slave_instance[parti].load(results_slave)
+
+    duales = slave_instance[parti].dual
+    print 'Dual Req Z1', duales.getValue(slave_instance[parti].CT_forced_req_z1)
+    print 'Dual Suma Rg Z1', duales.getValue(slave_instance[parti].CT_forced_req_z1)
+    print 'Dual Req Z2', duales.getValue(slave_instance[parti].CT_forced_req_z2)
+    #duales_m = master_instance.dual
+    print 'Duales del Master'
+    print 'Nodal Sic_Centro', duales_m.getValue(master_instance.CT_nodal_balance['SIC_Centro','Seco.Dmin'])
+    print 'Dual Req Z1 ', duales_m.getValue(master_instance.CT_zonal_reserve_up_Z1['Seco.Dmin', parti])
+    print 'Dual Req Z2', duales_m.getValue(master_instance.CT_zonal_reserve_up_Z2['Seco.Dmin', parti])
 
     if slave_instance[parti].Objective_rule()/slave_instance[parti].config_value['voll'] <= GAP_ENS:
         print('Particion optima encontrada: %s' % parti)
@@ -174,8 +190,6 @@ for i in range(1, max_it+1):
     #         print ('Pg ' + g + ', ' + s + ': ' + str(slave_instance.GEN_PG[g, s].value) + ' MW')
     # slave_instance.CT_forced_pg.pprint()
 
-    duales = slave_instance[parti].dual
-    print 'Dual', duales.getValue(slave_instance[parti].CT_forced_req_z1)
     cut = (slave_instance[parti].Objective_rule() +
            duales.getValue(slave_instance[parti].CT_forced_req_z1) *
            (master_instance.REQ_RES_Z1[parti]-master_instance.REQ_RES_Z1[parti].value) +
@@ -185,6 +199,35 @@ for i in range(1, max_it+1):
     master_instance.BENDERS.add(i)
     master_instance.CT_benders_reserve_requirement.add(master_instance.SLAVE_SECURITY >= cut)
     master_instance.preprocess()
+
+
+    print ("--- Exportando LP MASTER---")
+    stdout_ = sys.stdout  # Keep track of the previous value.
+    stream = cStringIO.StringIO()
+    sys.stdout = stream
+    print master_instance.pprint()  # Here you can do whatever you want, import module1, call test
+    sys.stdout = stdout_  # restore the previous stdout.
+    variable = stream.getvalue()  # This will get the "hello" string inside the variable
+
+    output = open(path_resultados+'modelo.txt', 'w')
+    output.write(variable)
+    master_instance.write(filename=path_resultados+'master_LP.txt', io_options={'symbolic_solver_labels': True})
+    # sys.stdout.write(instance.pprint())
+    output.close()
+
+    print ("--- Exportando LP SLAVE---")
+    stdout_ = sys.stdout  # Keep track of the previous value.
+    stream = cStringIO.StringIO()
+    sys.stdout = stream
+    print slave_instance[parti].pprint()  # Here you can do whatever you want, import module1, call test
+    sys.stdout = stdout_  # restore the previous stdout.
+    variable = stream.getvalue()  # This will get the "hello" string inside the variable
+
+    output = open(path_resultados+'modelo.txt', 'w')
+    output.write(variable)
+    slave_instance[parti].write(filename=path_resultados+'slave_LP.txt', io_options={'symbolic_solver_labels': True})
+    # sys.stdout.write(instance.pprint())
+    output.close()
 
 # TODO Agregar corte de benders
 

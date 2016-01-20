@@ -63,9 +63,8 @@ data_master.load(filename=path_datos+'data_bar_dyn.csv',
 
 data_master.load(filename=path_datos+'data_scenarios.csv',
                  set=master_model.ESCENARIOS)
-data_master2 = data_master
 
-data_master.load(filename=path_datos+'data_config_CENTRO-SUR.csv',
+data_master.load(filename=path_datos+'data_config_CN-CENTRO.csv',
                  param=master_model.config_value,
                  index=master_model.CONFIG)
 
@@ -75,12 +74,10 @@ data_slave = data_master
 print ("--- Creando Master ---")
 master_instance1 = master_model.create(data_master)
 
-data_master2.load(filename=path_datos+'data_config.csv',
-                  param=master_model.config_value,
-                  index=master_model.CONFIG)
+
 # master_instance2 = master_model.create(data_master2)
 
-print ("--- Creando Slave")
+print ("--- Creando Slave---")
 slave_instance = slave_model.create(data_slave)
 
 opt = SolverFactory("cplex")
@@ -108,7 +105,7 @@ def solve_despacho_y_confiabilidad(master, slave, req1, req2):
     results_slave = opt.solve(slave, tee=False)  # tee=True shows the solver info
     slave.load(results_slave)
 
-    return master.Objective_rule(), slave.Objective_rule()/slave_instance.config_value['voll']
+    return master.Objective_rule(), slave.Objective_rule()
 
 # Datos para la iteracion
 
@@ -116,7 +113,7 @@ GAP_ENS = 10
 eps = 0.1
 StartingPoints = {0: (100, 100), 1: (150, 100), 2: (100, 150)}
 it = 1
-max_it = 30
+max_it = 10
 ENS = {}
 fobj = {}
 planos = {}
@@ -124,10 +121,10 @@ planos = {}
 is_opt = 0
 
 #Resolviendo puntos de partida
-print '\nSolving Starting Points\n'
+print '\nSolving Starting Points'
 
 for i in [0, 1, 2]:
-    print 'Starting point', i+1
+    print '\nStarting point', i+1
     [fobj[i], ENS[i]] = solve_despacho_y_confiabilidad(master_instance1, slave_instance,
                                                        StartingPoints[i][0], StartingPoints[i][1])
     print 'ENS del punto ', StartingPoints[i], ' = ', ENS[i], ' [MW]'

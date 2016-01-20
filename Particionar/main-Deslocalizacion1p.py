@@ -183,7 +183,7 @@ for i in range(1, max_it+1):
 
 # TODO Agregar corte de benders
 print '\nCORTES'
-for i in planos:
+for i in range(1, len(planos)+1):
     print str(i) + ': ' + str(planos[i])
 print '\n Funcion Objetivo [k$]'
 for i in fobj:
@@ -192,8 +192,8 @@ print '\n ENS [MW]'
 for i in ENS:
     print str(i) + ': ' + str(ENS[i])
 print '\n Requerimientos (Zona1, Zona2) [MW]'
-for i in reqs:
-    print str(i) + ': ' + str(reqs[i])
+for i in range(1, len(reqs)+1):
+    print str(i) + ': ' + str(reqs[i][0]) + ' ' + str(reqs[i][1])
 
 print ('\n--------M O D E L O :  "%s"  T E R M I N A D O --------' % master_instance.config_value['scuc'])
 print ("path input:" + path_datos + '\n')
