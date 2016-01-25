@@ -254,18 +254,18 @@ _model.CT_kirchhoff_2nd_law_contingency = Constraint(_model.LINEAS, _model.ESCEN
                                                      rule=kirchhoff_contingency_rule)
 
 
-# CONSTRAINT 5: RESERVAS POR ZONAS
-def zonal_reserve_up_rule_z1(model, s):
-    return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == 1) >=
-            model.REQ_RES_Z1)
-
-
-def zonal_reserve_up_rule_z2(model, s):
-    return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == 2) >=
-            model.REQ_RES_Z2)
-
-_model.CT_zonal_reserve_up_Z1 = Constraint(_model.ESCENARIOS, rule=zonal_reserve_up_rule_z1)
-_model.CT_zonal_reserve_up_Z2 = Constraint(_model.ESCENARIOS, rule=zonal_reserve_up_rule_z2)
+# # CONSTRAINT 5: RESERVAS POR ZONAS
+# def zonal_reserve_up_rule_z1(model, s):
+#     return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == 1) >=
+#             model.REQ_RES_Z1)
+#
+#
+# def zonal_reserve_up_rule_z2(model, s):
+#     return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == 2) >=
+#             model.REQ_RES_Z2)
+#
+# _model.CT_zonal_reserve_up_Z1 = Constraint(_model.ESCENARIOS, rule=zonal_reserve_up_rule_z1)
+# _model.CT_zonal_reserve_up_Z2 = Constraint(_model.ESCENARIOS, rule=zonal_reserve_up_rule_z2)
 
 
 # FORCING DISPATCH
@@ -282,15 +282,15 @@ def forced_resup_rule(model, g, s):
 _model.CT_forced_resup = Constraint(_model.GENERADORES, _model.ESCENARIOS, rule=forced_resup_rule)
 
 
-def forced_req_z1_rule(model):
-    return model.REQ_RES_Z1 == model.Req_Z1
-
-
-def forced_req_z2_rule(model):
-    return model.REQ_RES_Z2 == model.Req_Z2
-
-_model.CT_forced_req_z1 = Constraint(rule=forced_req_z1_rule)
-_model.CT_forced_req_z2 = Constraint(rule=forced_req_z2_rule)
+# def forced_req_z1_rule(model):
+#     return model.REQ_RES_Z1 == model.Req_Z1
+#
+#
+# def forced_req_z2_rule(model):
+#     return model.REQ_RES_Z2 == model.Req_Z2
+#
+# _model.CT_forced_req_z1 = Constraint(rule=forced_req_z1_rule)
+# _model.CT_forced_req_z2 = Constraint(rule=forced_req_z2_rule)
 
 ###########################################################################
 # FUNCION OBJETIVO

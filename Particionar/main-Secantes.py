@@ -72,7 +72,7 @@ data_slave = data_master
 
 
 print ("--- Creando Master ---")
-master_instance1 = master_model.create(data_master)
+master_instance = master_model.create(data_master)
 
 
 # master_instance2 = master_model.create(data_master2)
@@ -111,9 +111,9 @@ def solve_despacho_y_confiabilidad(master, slave, req1, req2):
 
 GAP_ENS = 10
 eps = 0.1
-StartingPoints = {0: (100, 100), 1: (150, 100), 2: (100, 150)}
+Requerimientos = {0: (100, 100), 1: (150, 100), 2: (100, 150)}
 it = 1
-max_it = 10
+max_it = 30
 ENS = {}
 fobj = {}
 planos = {}
@@ -125,35 +125,35 @@ print '\nSolving Starting Points'
 
 for i in [0, 1, 2]:
     print '\nStarting point', i+1
-    [fobj[i], ENS[i]] = solve_despacho_y_confiabilidad(master_instance1, slave_instance,
-                                                       StartingPoints[i][0], StartingPoints[i][1])
-    print 'ENS del punto ', StartingPoints[i], ' = ', ENS[i], ' [MW]'
+    [fobj[i], ENS[i]] = solve_despacho_y_confiabilidad(master_instance, slave_instance,
+                                                       Requerimientos[i][0], Requerimientos[i][1])
+    print 'ENS del punto ', Requerimientos[i], ' = ', ENS[i], ' [MW]'
 
-v1 = (ENS[it+1]-ENS[it-1],
-      StartingPoints[it+1][0]-StartingPoints[it-1][0],
-      StartingPoints[it+1][1]-StartingPoints[it-1][1])
-v2 = (ENS[it]-ENS[it-1],
-      StartingPoints[it][0]-StartingPoints[it-1][0],
-      StartingPoints[it][1]-StartingPoints[it-1][1])
-vnormal = (v1[1]*v2[2]-v1[2]*v2[1],
+v1 = [ENS[it+1]-ENS[it-1],
+      Requerimientos[it+1][0]-Requerimientos[it-1][0],
+      Requerimientos[it+1][1]-Requerimientos[it-1][1]]
+v2 = [ENS[it]-ENS[it-1],
+      Requerimientos[it][0]-Requerimientos[it-1][0],
+      Requerimientos[it][1]-Requerimientos[it-1][1]]
+vnormal = [v1[1]*v2[2]-v1[2]*v2[1],
            v1[2]*v2[0]-v1[0]*v2[2],
-           v1[0]*v2[1]-v1[1]*v2[0])
-vnormal = (1, vnormal[1]/vnormal[0], vnormal[2]/vnormal[0])
-K = vnormal[0]*ENS[it+1] + vnormal[1]*StartingPoints[it+1][0] + vnormal[2]*StartingPoints[it+1][1]
-plano = (vnormal[0] * master_instance1.SLAVE_SECURITY +
-         vnormal[1] * master_instance1.REQ_RES_Z1 +
-         vnormal[2] * master_instance1.REQ_RES_Z2 -
+           v1[0]*v2[1]-v1[1]*v2[0]]
+vnormal = [1, vnormal[1]/vnormal[0], vnormal[2]/vnormal[0]]
+K = vnormal[0]*ENS[it+1] + vnormal[1]*Requerimientos[it+1][0] + vnormal[2]*Requerimientos[it+1][1]
+plano = (vnormal[0] * master_instance.SLAVE_SECURITY +
+         vnormal[1] * master_instance.REQ_RES_Z1 +
+         vnormal[2] * master_instance.REQ_RES_Z2 -
          K)
 
-master_instance1.CT_fix_req_res_z1.deactivate()
-master_instance1.CT_fix_req_res_z2.deactivate()
+master_instance.CT_fix_req_res_z1.deactivate()
+master_instance.CT_fix_req_res_z2.deactivate()
 
 if vnormal[0] > 0:
-    master_instance1.CT_cortes.add(plano >= 0)
-    master_instance1.preprocess()
+    master_instance.CT_cortes.add(plano >= 0)
+    master_instance.preprocess()
 else:
-    master_instance1.CT_cortes.add(plano <= 0)
-    master_instance1.preprocess()
+    master_instance.CT_cortes.add(plano <= 0)
+    master_instance.preprocess()
 
 print plano
 planos[0] = plano
@@ -162,52 +162,56 @@ while is_opt == False:
 ####  - - - -   - - RESOLVIENDO LA OPTIMIZACION  MAESTRO- - - - - - #######
     print ('\n\nIteracion %i' % it)
     it += 1
-    fobj[it+1], ENS[it+1] = solve_despacho_y_confiabilidad(master_instance1, slave_instance, 0, 0)
-    StartingPoints[it+1] = (master_instance1.REQ_RES_Z1.value, master_instance1.REQ_RES_Z2.value)
+    fobj[it+1], ENS[it+1] = solve_despacho_y_confiabilidad(master_instance, slave_instance, 0, 0)
+    Requerimientos[it+1] = (master_instance.REQ_RES_Z1.value, master_instance.REQ_RES_Z2.value)
 
-    print ('Requerimiento de reserva zona 1: %r [MW]' % StartingPoints[it+1][0])
-    print ('Requerimiento de reserva zona 2: %r [MW]' % StartingPoints[it+1][1])
-    print ('ENS esperada (MASTER): %r [MW]' % master_instance1.SLAVE_SECURITY.value)
+    print ('Requerimiento de reserva zona 1: %r [MW]' % Requerimientos[it+1][0])
+    print ('Requerimiento de reserva zona 2: %r [MW]' % Requerimientos[it+1][1])
+    print ('ENS esperada (MASTER): %r [MW]' % master_instance.SLAVE_SECURITY.value)
     print ('ENS de la particion: %r [MW]' % ENS[it+1])
     print ('Costo Operacional del Sistema: %r [k$]' % (fobj[it+1]/1000))
 
     # TODO: Agregar corte usando los 3 ultimos puntos.
     v1 = (ENS[it+1]-ENS[it-1],
-          StartingPoints[it+1][0]-StartingPoints[it-1][0],
-          StartingPoints[it+1][1]-StartingPoints[it-1][1])
+          Requerimientos[it+1][0]-Requerimientos[it-1][0],
+          Requerimientos[it+1][1]-Requerimientos[it-1][1])
     v2 = (ENS[it]-ENS[it-1],
-          StartingPoints[it][0]-StartingPoints[it-1][0],
-          StartingPoints[it][1]-StartingPoints[it-1][1])
+          Requerimientos[it][0]-Requerimientos[it-1][0],
+          Requerimientos[it][1]-Requerimientos[it-1][1])
     vnormal = (v1[1]*v2[2]-v1[2]*v2[1],
                v1[2]*v2[0]-v1[0]*v2[2],
                v1[0]*v2[1]-v1[1]*v2[0])
     j = 1
-    while abs(vnormal[0]) < eps:
-        v1 = (ENS[it+1]-ENS[it-1-j],
-              StartingPoints[it+1][0]-StartingPoints[it-1-j][0],
-              StartingPoints[it+1][1]-StartingPoints[it-1-j][1])
-        v2 = (ENS[it-j]-ENS[it-1-j],
-              StartingPoints[it-j][0]-StartingPoints[it-1-j][0],
-              StartingPoints[it-j][1]-StartingPoints[it-1-j][1])
-        vnormal = (v1[1]*v2[2]-v1[2]*v2[1],
-                   v1[2]*v2[0]-v1[0]*v2[2],
-                   v1[0]*v2[1]-v1[1]*v2[0])
-        j += 1
-    vnormal = (1, vnormal[1]/vnormal[0], vnormal[2]/vnormal[0])
-    K = vnormal[0]*ENS[it+1] + vnormal[1]*StartingPoints[it+1][0] + vnormal[2]*StartingPoints[it+1][1]
-    plano = (vnormal[0] * master_instance1.SLAVE_SECURITY +
-             vnormal[1] * master_instance1.REQ_RES_Z1 +
-             vnormal[2] * master_instance1.REQ_RES_Z2 -
+    planovalido = False
+    while not planovalido:
+        while abs(vnormal[0]) < eps:
+            v1 = [ENS[it+1]-ENS[it-1-j],
+                  Requerimientos[it+1][0]-Requerimientos[it-1-j][0],
+                  Requerimientos[it+1][1]-Requerimientos[it-1-j][1]]
+            v2 = [ENS[it-j]-ENS[it-1-j],
+                  Requerimientos[it-j][0]-Requerimientos[it-1-j][0],
+                  Requerimientos[it-j][1]-Requerimientos[it-1-j][1]]
+            vnormal = [v1[1]*v2[2]-v1[2]*v2[1],
+                       v1[2]*v2[0]-v1[0]*v2[2],
+                       v1[0]*v2[1]-v1[1]*v2[0]]
+            j += 1
+        vnormal = [1, vnormal[1]/vnormal[0], vnormal[2]/vnormal[0]]
+        K = vnormal[0]*ENS[it+1] + vnormal[1]*Requerimientos[it+1][0] + vnormal[2]*Requerimientos[it+1][1]
+
+        if K > 0 and vnormal[1] >= 0 and vnormal[2] >= 0:
+            planovalido = True
+        else:
+            vnormal[0] = 0
+
+    plano = (vnormal[0] * master_instance.SLAVE_SECURITY +
+             vnormal[1] * master_instance.REQ_RES_Z1 +
+             vnormal[2] * master_instance.REQ_RES_Z2 -
              K)
     print plano
     planos[it-1] = plano
 
-    if vnormal[0] > 0:
-        master_instance1.CT_cortes.add(plano >= 0)
-        master_instance1.preprocess()
-    elif vnormal[0] < 0:
-        master_instance1.CT_cortes.add(plano <= 0)
-        master_instance1.preprocess()
+    master_instance.CT_cortes.add(plano >= 0)
+    master_instance.preprocess()
 
     if ENS[it+1] <= GAP_ENS:
         is_opt = True
@@ -219,8 +223,8 @@ fopt = 100000000
 ropt = 0
 # m2 = m1
 print 'Particion 1:\n (Req1, Req2) ENS Fobj'
-for r in StartingPoints:
-    print r, StartingPoints[r], ENS[r], '[MW]', fobj[r]/1000, '[k$]'
+for r in Requerimientos:
+    print r, Requerimientos[r], ENS[r], '[MW]', fobj[r]/1000, '[k$]'
     if ENS[r] == 0:
         if fobj[r] < fopt:
             fopt = fobj[r]
@@ -236,7 +240,7 @@ for r in planos:
 #         rr2 = r
 
 
-print '\nOptimo Particion 1=', StartingPoints[ropt], fopt
+print '\nOptimo Particion 1=', Requerimientos[ropt], fopt
 # print 'Optimo Particion 2=', rr, m2
 # TODO Agregar corte de benders
 
