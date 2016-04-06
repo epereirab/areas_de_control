@@ -71,12 +71,12 @@ data.load(filename=path_datos+'data_config.csv',
 data.load(filename=path_datos+'data_scenarios.csv',
           set=model.ESCENARIOS)
 
-print ("--- Creando Modelo ---")
+print ("--- Creando Modelo.... ---")
 instance = model.create(data)
 opt = SolverFactory("cplex")
 
 ####  - - - - - - RESOLVIENDO LA OPTIMIZACION  - - - - - - #######
-print ("--- Resolviendo la optimizacion ---")
+print ('\n--------Resolviendo la optimizacion  "%s"--------' % instance.config_value['scuc'])
 results = opt.solve(instance, tee=True)
 # results.write()
 instance.load(results)
@@ -95,7 +95,7 @@ if instance.config_value['debugging']:
     output = open(path_resultados+'modelo.txt', 'w')
     output.write(variable)
     instance.write(filename=path_resultados+'LP.txt', io_options={'symbolic_solver_labels': True})
-    # sys.stdout.write(instance.pprint())
+    sys.stdout.write(instance.pprint())
     output.close()
 
 print ('\n--------M O D E L O :  "%s"  T E R M I N A D O --------' % instance.config_value['scuc'])

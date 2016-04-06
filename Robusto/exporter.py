@@ -1,5 +1,5 @@
 import csv
-
+import math
 
 def costo_ens(model, s):
     """ Costo ENS en estado sin falla, para un escenario s"""
@@ -45,7 +45,7 @@ def exportar_gen(model, path):
     writer2 = csv.writer(ofile2, delimiter=',', quoting=csv.QUOTE_NONE)
 
     # header
-    header = ['Generador', 'Escenario', 'zona', 'barra', 'tipo', 'Cvar', 'Pmin', 'Pmax', 'Pmax_eff', 'UC',
+    header = ['Generador', 'Escenario', 'zona', 'barra', 'tipo', 'Cvar', 'Pmin', 'Pmin_eff', 'Pmax', 'Pmax_eff', 'UC',
               'PG_0', 'RES_UP', 'RES_DN']
     for sf in fallas:
         header.append(model.gen_barra[sf] + '-' + str(sf))
@@ -62,11 +62,12 @@ def exportar_gen(model, path):
             tmprow.append(model.gen_tipo[g])
             tmprow.append(model.gen_cvar[g, s])
             tmprow.append(model.gen_pmin[g])
+            tmprow.append(round(model.gen_pmin[g] * model.gen_factorcap[g, s],2))
             tmprow.append(model.gen_pmax[g])
-            tmprow.append(model.gen_pmax[g] * model.gen_factorcap[g, s])
-            tmprow.append(0 if str(model.GEN_UC[g, s].value) == 'None' else model.GEN_UC[g, s].value)
-            tmprow.append(model.GEN_PG[g, s].value)
-            tmprow.append(model.GEN_RESUP[g, s].value)
+            tmprow.append(round(model.gen_pmax[g] * model.gen_factorcap[g, s],2))
+            tmprow.append(round((0 if str(model.GEN_UC[g, s].value) == 'None' else model.GEN_UC[g, s].value),0))
+            tmprow.append(round(model.GEN_PG[g, s].value,2))
+            tmprow.append(round(model.GEN_RESUP[g, s].value,2))
             tmprow.append(model.GEN_RESDN[g, s].value)
             tmprow2 = list(tmprow)
 
@@ -155,7 +156,7 @@ def exportar_system(model, path):
     writer = csv.writer(ofile, delimiter=',', quoting=csv.QUOTE_NONE)
 
     # Header
-    header = ['Valor', 'Escenario', '0']
+    header = ['Valor', 'Escenario', 'DespachoBase']
     for sf in fallas:
         header.append(model.gen_barra[sf] + '-' + str(sf))
     writer.writerow(header)
@@ -163,6 +164,7 @@ def exportar_system(model, path):
     for s in scen:
         tmprow = []
         tmprow.append('CostoTotal')
+        tmprow.append(str(s))
         tmprow.append(costo_base(model, s))
         for sf in fallas:
             tmprow.append(costo_escenario_falla(model, s, sf))
@@ -170,6 +172,7 @@ def exportar_system(model, path):
 
         tmprow = []
         tmprow.append('CostoOperacion')
+        tmprow.append(str(s))
         tmprow.append(costo_op(model, s))
         for sf in fallas:
             tmprow.append(costo_op_escenario_falla(model, s, sf))
@@ -177,6 +180,7 @@ def exportar_system(model, path):
 
         tmprow = []
         tmprow.append('CostoENS')
+        tmprow.append(str(s))
         tmprow.append(costo_ens(model, s))
         for sf in fallas:
             tmprow.append(costo_ens_escenario_falla(model, s, sf))
