@@ -345,7 +345,7 @@ _model.CT_kirchhoff_2nd_law_contingency = Constraint(_model.LINEAS, _model.ESCEN
 
 # CONSTRAINT 5: RESERVA POR ZONAS
 def zonal_reserve_up_rule(model, z, s):
-    if model.config_value['scuc'] == 'none':
+    if model.config_value['scuc'] == 'zonal':
         return (sum(model.GEN_RESUP[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
                 model.zonal_rup[z])
     if model.config_value['scuc'] == 'zonal_sharing':
@@ -357,7 +357,7 @@ def zonal_reserve_up_rule(model, z, s):
 
 
 def zonal_reserve_dn_rule(model, z, s):
-    if model.config_value['scuc'] == 'none':
+    if model.config_value['scuc'] == 'zonal':
         return (sum(model.GEN_RESDN[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
                 model.zonal_rdn[z])
     if model.config_value['scuc'] == 'zonal_sharing':
@@ -417,14 +417,14 @@ _model.CT_max_shared_resdn = Constraint(_model.ZONE2ZONE, _model.ESCENARIOS, rul
 
 # CONSTRAINT 8: RESERVA MINIMA y MAXIMA (modelos Zonales)
 def min_reserve_up(model, g, s):
-    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'none':
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'zonal':
         return model.GEN_RESUP[g, s] >= model.GEN_RES_UC[g, s] * model.config_value['rup_min']
     else:
         return Constraint.Skip
 
 
 def max_reserve_up(model, g, s):
-    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'none':
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'zonal':
         return model.GEN_RESUP[g, s] <= model.GEN_RES_UC[g, s] * model.gen_rupmax[g, s]
     else:
         return Constraint.Skip
@@ -435,7 +435,7 @@ _model.CT_min_reserve_up = Constraint(_model.GENERADORES, _model.ESCENARIOS, rul
 
 # CONSTRAINT 8: CANTIDAD MINIMA DE GENERADORES APORTANDO RESERVA
 def min_reserve_gen_number(model, z, s):
-    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'none':
+    if model.config_value['scuc'] == 'zonal_sharing' or model.config_value['scuc'] == 'zonal':
         return (sum(model.GEN_RES_UC[g, s] for g in model.GENERADORES if model.zona[model.gen_barra[g]] == z) >=
                 model.config_value['ngen_min'])
     else:
@@ -450,15 +450,15 @@ def forced_pg_rule(model, g, s):
     if model.config_value['scuc'] == 'forced_scuc':# and round(model.gen_d_uc[g, s],0)>0:
         ub = round(model.gen_pmax[g] * model.gen_factorcap[g, s],2)*round(model.gen_d_uc[g, s],0)
         lb = round(model.gen_pmin[g] * model.gen_factorcap[g, s],2)*round(model.gen_d_uc[g, s],0)
-        if model.gen_d_pg[g,s]>ub or model.gen_d_pg[g,s]<lb:
+        if model.gen_d_pg[g, s] > ub or model.gen_d_pg[g, s] < lb:
             print "ERROR 1"
-            print "g_:" +str(g) + " S: "+ str(s)
+            print "g_:" + str(g) + " S: " + str(s)
 
-        if model.gen_d_resup[g, s]> ub-lb:
+        if model.gen_d_resup[g, s] > ub-lb:
             return Constraint.Skip
             print "ERROR 2"
-            print "g_:" +str(g) + " S: "+ str(s)
-            print "ub= " + str(ub) +" lb: "+ str(lb) + " res " + str(model.gen_d_resup[g, s]) + " resta "+ str(ub-lb)
+            print "g_:" + str(g) + " S: " + str(s)
+            print "ub= " + str(ub) + " lb: " + str(lb) + " res " + str(model.gen_d_resup[g, s]) + " resta " + str(ub-lb)
         return model.GEN_PG[g, s] == model.gen_d_pg[g, s]
     else:
         return Constraint.Skip
