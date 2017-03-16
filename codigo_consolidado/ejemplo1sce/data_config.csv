@@ -1,0 +1,12 @@
+[,config_value
+scuc,gx
+voll,10000
+debugging_master,false
+debugging_slave,false
+default_bar,SIC_Centro
+rup_min,50
+ngen_min,2
+c_res,0.1
+barras_zona1,"[SING_Norte,SING_Centro,SING_Sur,SIC_CentroNorte,SIC_Norte,SIC_Centro]"
+barras_zona2,"[SIC_CentroSurA,SIC_CentroSurC,SIC_Sur]"
+Nzonas,2

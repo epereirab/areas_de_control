@@ -1,0 +1,4 @@
+[datos]
+/Users/MPro/Documents/TRABAJO/CE-FCFM/AreasDeControl/areas_de_control/codigo_consolidado/ejemplo1sce/
+[resultados]
+/Users/MPro/Documents/TRABAJO/CE-FCFM/AreasDeControl/areas_de_control/codigo_consolidado/ejemplo1sce/resultados/

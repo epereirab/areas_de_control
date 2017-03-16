@@ -1,0 +1,10 @@
+BARRAS,vecinos
+SING_Norte,"[SING_Norte,SING_Centro,SING_Sur,SIC_CentroNorte]"
+SING_Centro,"[SING_Centro,SING_Norte,SING_Sur,SIC_CentroNorte,SIC_Norte]"
+SING_Sur,"[SING_Sur,SING_Centro,SING_Norte,SIC_CentroNorte]"
+SIC_Norte,"[SIC_Norte,SIC_CentroNorte,SIC_Centro,SING_Centro]"
+SIC_CentroNorte,"[SIC_CentroNorte,SIC_Norte,SIC_Centro,SIC_CentroSurA,SING_Sur,SING_Centro,SING_Norte]"
+SIC_Centro,"[SIC_Centro,SIC_CentroNorte,SIC_Norte,SIC_CentroSurA,SIC_CentroSurC,SING_Centro]"
+SIC_CentroSurA,"[SIC_CentroSurA,SIC_CentroSurC,SIC_Sur,SIC_Centro,SIC_CentroNorte]"
+SIC_CentroSurC,"[SIC_CentroSurC,SIC_CentroSurA,SIC_Sur,SIC_Centro]"
+SIC_Sur,"[SIC_Sur,SIC_CentroSurC,SIC_CentroSurA]"

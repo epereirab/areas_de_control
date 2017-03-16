@@ -1,0 +1,18 @@
+
+Log started (V12.5.1.0) Thu Mar 16 16:45:06 2017
+
+
+Problem 'slave_model_resuelto_LP.lp' read.
+Read time = 0.10 sec. (3.06 ticks)
+Parallel mode: deterministic, using up to 8 threads for concurrent optimization.
+Infeasible column 'GEN_PG(ANG_I_Seco_Dmin)'.
+Presolve time = 0.01 sec. (3.48 ticks)
+Presolve - Infeasible.
+Solution time =    0.01 sec.
+Deterministic time = 3.48 ticks  (331.61 ticks/sec)
+
+Problem 'slave_model_resuelto_LP.lp' read.
+Read time = 0.10 sec. (3.06 ticks)
+Parallel mode: deterministic, using up to 8 threads for concurrent optimization.
+Row 'c_u_CT_min_power_contingency(ANG_I_Seco_Dmin_ANG_II)_' infeasible, all entries at implied bounds.
+Presolve time = 0.01 sec. (4.50 ticks)

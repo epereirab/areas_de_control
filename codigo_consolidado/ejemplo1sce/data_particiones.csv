@@ -1,0 +1,4 @@
+PARTICIONES,barras_zona1,barras_zona2
+SIC-SING,"[SING_Norte,SING_Centro,SING_Sur]","[SIC_CentroSurA,SIC_CentroSurC,SIC_Sur,SIC_Centro,SIC_CentroNorte,SIC_Norte]"
+CN-CENTRO,"[SING_Norte,SING_Centro,SING_Sur,SIC_CentroNorte,SIC_Norte]","[SIC_CentroSurA,SIC_CentroSurC,SIC_Sur,SIC_Centro]"
+CENTRO-SUR,"[SING_Norte,SING_Centro,SING_Sur,SIC_CentroNorte,SIC_Norte,SIC_Centro]","[SIC_CentroSurA,SIC_CentroSurC,SIC_Sur]"
